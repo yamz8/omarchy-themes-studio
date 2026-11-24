@@ -1,5 +1,5 @@
 #!/usr/bin/python
-"""Open up the Kanagawa still: cut it into its inks and its parts.
+"""Open up the Kanagawa still: cut it into its inks and its parts, each painted in behind.
 
 Usage: open.py [still] [out directory]
 
@@ -20,6 +20,8 @@ from PIL import Image, ImageDraw, ImageFont
 from scipy import ndimage as ndi
 from scipy.cluster.vq import kmeans2
 from skimage import color
+
+from behind import paint_behind
 
 HERE = Path(__file__).resolve().parent
 INKS = 9          # colours the print is read as
@@ -46,9 +48,9 @@ def main():
   part = cut_parts(spec, ink, areas, width, height)
 
   write_inks(out, still, ink, ink_colours)
-  write_parts(out, still, part, names)
-  write_maps(out, areas, part, names)
-  write_layered_file(out, still, part, names, still_path.stem)
+  write_maps(out, areas, part, names, ink, ink_colours)
+  write_parts(out, still, ink, part, spec)
+  write_layered_file(out, still, names, still_path.stem)
   write_sheet(out, still, part, names)
   check_stack(out, still, names)
   print(f"{len(names)} parts, {len(ink_colours)} inks, {areas.max()} colour areas -> {out}")
@@ -112,6 +114,19 @@ def cut_parts(spec, ink, areas, width, height):
       low, high = (limit * scale * scale for limit in entry["size"])
       chosen = (winner == names.index(entry["within"])) & whole & (area_ink == entry["ink"] - 1) & (size >= low) & (size < high)
       part[chosen[areas]] = index
+
+  # A nearer part takes the edge it shares with the parts behind it. Those few pixels are a
+  # blend of both, and left behind they would show as a ghost outline once the part moves.
+  for index, entry in enumerate(spec["part"]):
+    edge = entry.get("edge", spec["edge"]) * scale
+    rows, columns = np.where(part == index)
+    if not len(rows) or edge <= 0:
+      continue
+    pad = int(edge) + 2
+    box = (slice(max(rows.min() - pad, 0), rows.max() + pad + 1), slice(max(columns.min() - pad, 0), columns.max() + pad + 1))
+    near = ndi.distance_transform_edt(part[box] != index) <= edge
+    view = part[box]
+    view[near & (view < index)] = index
   return part
 
 
@@ -126,39 +141,47 @@ def write_inks(out, still, ink, colours):
     cut_out(still, ink == index).save(out / "inks" / name, compress_level=3)
 
 
-def write_parts(out, still, part, names):
-  for index, name in enumerate(names):
-    cut_out(still, part == index).save(out / "parts" / f"{index + 1:02d}-{name}.png", compress_level=3)
+def write_parts(out, still, ink, part, spec):
+  """Each part with the picture painted in where nearer parts cover it, so the parts overlap."""
+  unit = still.shape[1] / spec["drawn_at_width"]
+  for index, entry in enumerate(spec["part"]):
+    reach = entry.get("reach", spec["reach"])
+    reach = None if reach == "all" else reach * unit
+    layer = paint_behind(still, ink, part, index, reach, entry.get("behind") == "graded", unit)
+    Image.fromarray(layer).save(out / "parts" / f"{index + 1:02d}-{entry['name']}.png", compress_level=3)
 
 
-def write_maps(out, areas, part, names):
+def write_maps(out, areas, part, names, ink, ink_colours):
   # parts.png: one flat picture, each pixel holding its part's number (see parts.json).
   flat = Image.fromarray(part, "P")
   palette = part_palette(len(names))
   flat.putpalette(palette.ravel().tolist())
   flat.save(out / "parts.png")
   (out / "parts.json").write_text(json.dumps({index: name for index, name in enumerate(names)}, indent=2) + "\n")
+  # inks.png: the same for inks, shown in the inks' own colours.
+  flat = Image.fromarray(ink, "P")
+  flat.putpalette(ink_colours.ravel().tolist())
+  flat.save(out / "inks.png")
   # areas.png: every colour area's number, as red + 256 * green + 65536 * blue.
   coded = np.dstack([areas & 255, (areas >> 8) & 255, (areas >> 16) & 255]).astype(np.uint8)
   Image.fromarray(coded).save(out / "areas.png", compress_level=3)
 
 
-def write_layered_file(out, still, part, names, stem):
+def write_layered_file(out, still, names, stem):
   """An OpenRaster file: every part as a layer, for Krita, GIMP and anything else that reads .ora."""
   height, width, _ = still.shape
   stack = [f'<?xml version="1.0" encoding="UTF-8"?>\n<image version="0.0.3" w="{width}" h="{height}">\n<stack>']
   with zipfile.ZipFile(out / f"{stem}.ora", "w") as ora:
     ora.writestr(zipfile.ZipInfo("mimetype"), "image/openraster", compress_type=zipfile.ZIP_STORED)
     for index in reversed(range(len(names))):  # the file lists the top layer first
-      rows, columns = np.where(part == index)
-      if not len(rows):
+      layer = Image.open(out / "parts" / f"{index + 1:02d}-{names[index]}.png")
+      box = layer.getchannel("A").getbbox()
+      if not box:
         continue
-      top, left, bottom, right = rows.min(), columns.min(), rows.max() + 1, columns.max() + 1
-      layer = cut_out(still[top:bottom, left:right], part[top:bottom, left:right] == index)
       path = f"data/{index + 1:02d}-{names[index]}.png"
       with ora.open(path, "w") as handle:
-        layer.save(handle, "PNG", compress_level=3)
-      stack.append(f'<layer name="{names[index]}" src="{path}" x="{left}" y="{top}" opacity="1.0" visibility="visible"/>')
+        layer.crop(box).save(handle, "PNG", compress_level=3)
+      stack.append(f'<layer name="{names[index]}" src="{path}" x="{box[0]}" y="{box[1]}" opacity="1.0" visibility="visible"/>')
     stack.append("</stack>\n</image>\n")
     ora.writestr("stack.xml", "\n".join(stack))
     with ora.open("mergedimage.png", "w") as handle:
@@ -178,7 +201,7 @@ def part_palette(count):
 
 
 def write_sheet(out, still, part, names):
-  """One picture to look at: the still, the part map, each part alone, and a part lifted out."""
+  """One picture to look at: the still, the part map, each part alone, and parts taken away."""
   height, width, _ = still.shape
   cell_w, cell_h = SHEET_CELL, round(SHEET_CELL * height / width)
   small = np.asarray(Image.fromarray(still).resize((cell_w, cell_h), Image.LANCZOS)).astype(np.float32)
@@ -187,13 +210,25 @@ def write_sheet(out, still, part, names):
   backdrop = np.where(checker[..., None] == 1, 96, 120).astype(np.float32) * np.ones(3)
   palette = part_palette(len(names)).astype(np.float32)
 
-  cells = [("the still", small), ("parts", 0.4 * small + 0.6 * palette[small_part])]
+  layers = []
   for index, name in enumerate(names):
-    alone = np.where((small_part == index)[..., None], small, backdrop)
-    cells.append((f"{index + 1:02d} {name}", alone))
-  lift = names.index("boat-far")
-  hole = np.where((small_part == lift)[..., None], np.array([255.0, 0, 255]), small)
-  cells.append(("boat-far lifted out: nothing behind it", hole))
+    layer = Image.open(out / "parts" / f"{index + 1:02d}-{name}.png").convert("RGBa")  # premultiplied
+    layer = np.asarray(layer.resize((cell_w, cell_h), Image.LANCZOS)).astype(np.float32)
+    layers.append((layer[..., :3], layer[..., 3:] / 255))
+
+  def stacked(leave_out=()):
+    frame = np.full((cell_h, cell_w, 3), 255.0) * np.array([1, 0, 1])
+    for name, (colour, alpha) in zip(names, layers):
+      if name not in leave_out:
+        frame = colour + frame * (1 - alpha)
+    return frame
+
+  cells = [("the still", small), ("where each part shows", 0.4 * small + 0.6 * palette[small_part])]
+  for index, name in enumerate(names):
+    colour, alpha = layers[index]
+    cells.append((f"{index + 1:02d} {name}", colour + backdrop * (1 - alpha)))
+  cells.append(("boats taken away", stacked(("boat-far", "boat-left", "boat-front"))))
+  cells.append(("boats, spray, cloud, text taken away", stacked(("boat-far", "boat-left", "boat-front", "spray", "cloud", "text"))))
 
   columns = 4
   rows = -(-len(cells) // columns)
@@ -209,15 +244,13 @@ def write_sheet(out, still, part, names):
 
 
 def check_stack(out, still, names):
-  """The parts, read back from disk and stacked, must be the still exactly."""
-  stacked = np.zeros_like(still)
-  covered = np.zeros(still.shape[:2], np.int32)
+  """The parts, read back from disk and stacked one over the other, must be the still exactly."""
+  stacked = np.zeros(still.shape, np.float32)
   for index, name in enumerate(names):
-    layer = np.asarray(Image.open(out / "parts" / f"{index + 1:02d}-{name}.png"))
-    here = layer[..., 3] == 255
-    stacked[here] = layer[..., :3][here]
-    covered += here
-  if not (covered == 1).all() or not (stacked == still).all():
+    layer = np.asarray(Image.open(out / "parts" / f"{index + 1:02d}-{name}.png")).astype(np.float32)
+    alpha = layer[..., 3:] / 255
+    stacked = layer[..., :3] * alpha + stacked * (1 - alpha)
+  if not (stacked.round().astype(np.uint8) == still).all():
     sys.exit("the parts do not stack back to the still")
   print("stack check: the parts stack back to the still, pixel for pixel")
 

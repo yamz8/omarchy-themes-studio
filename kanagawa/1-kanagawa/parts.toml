@@ -7,22 +7,31 @@ sha256 = "9b817d717688539f0db87603b661992839c3cbb5d4918a02a4efc05c9f88b27d"
 # The regions were drawn by eye on a copy of the still this wide.
 drawn_at_width = 1600
 
+# How far a part's edge reaches into the parts behind it, and how far the picture is painted in
+# under the parts in front of it. Both in pixels at drawn_at_width; a part can set its own.
+edge = 1
+reach = 60
+
 # Parts are listed back to front. A later region wins where two overlap.
 # `rule = "rest"` takes everything no region claims. `within` picks areas of one ink (numbered
 # lightest first, so 1 is bare paper) and a size range (in pixels at drawn_at_width) out of another part.
 
 [[part]]
 name = "sky"
+reach = "all"
+behind = "graded"
 regions = [[[0, 0], [1600, 0], [1600, 452], [1560, 500], [1480, 604], [1400, 684], [1320, 750], [1180, 830], [1010, 845], [940, 812], [880, 800], [800, 800], [750, 765], [700, 710], [660, 650], [635, 580], [630, 500], [650, 430], [690, 400], [740, 400], [800, 430], [850, 470], [900, 490], [930, 430], [950, 380], [920, 330], [860, 290], [800, 265], [790, 215], [740, 170], [660, 125], [600, 112], [500, 125], [420, 150], [340, 195], [270, 250], [200, 330], [135, 390], [0, 392]]]
 note = "The graded sky, peach at the top to near black at the horizon. Soft, no outline."
 
 [[part]]
 name = "cloud"
+edge = 12
 regions = [[[890, 180], [960, 160], [1060, 150], [1100, 118], [1160, 118], [1175, 160], [1270, 195], [1275, 225], [1180, 250], [1130, 300], [1150, 350], [1210, 380], [1215, 412], [1100, 420], [960, 425], [935, 395], [950, 340], [905, 300], [900, 240], [940, 215], [895, 200]], [[170, 235], [215, 205], [265, 190], [345, 190], [300, 235], [250, 262], [185, 262]]]
 note = "Bare paper inside the sky. Its lower edge fades into the grey with no line."
 
 [[part]]
 name = "fuji"
+reach = 10
 regions = [[[935, 802], [1015, 713], [1032, 713], [1128, 802]]]
 note = "Mount Fuji, small and far, framed by the hollow of the wave."
 
@@ -33,11 +42,13 @@ note = "A strip of distant water at the left edge, behind the great wave."
 
 [[part]]
 name = "boat-far"
+reach = 8
 regions = [[[885, 765], [960, 790], [1010, 800], [1150, 793], [1290, 700], [1330, 650], [1420, 585], [1445, 585], [1490, 575], [1480, 600], [1400, 680], [1320, 745], [1180, 825], [1010, 840], [950, 810]]]
 note = "The boat in front of Fuji with its rowers, its stern lifted by the swell."
 
 [[part]]
 name = "great-wave"
+edge = 3
 rule = "rest"
 note = "The great wave: the white hill, the dark hollow, and the claws of foam."
 
@@ -50,16 +61,19 @@ note = "The dots of spray falling from the crest across the sky."
 
 [[part]]
 name = "boat-left"
+reach = 8
 regions = [[[28, 525], [60, 540], [140, 650], [260, 700], [385, 740], [300, 800], [260, 810], [180, 790], [110, 700], [60, 620], [30, 560]]]
 note = "The boat under the great wave, half hidden by the front wave."
 
 [[part]]
 name = "right-swell"
+edge = 3
 regions = [[[770, 800], [880, 788], [940, 812], [1010, 845], [1180, 830], [1320, 750], [1400, 684], [1480, 604], [1560, 500], [1600, 452], [1600, 1104], [640, 1104], [660, 1040], [700, 960], [700, 900], [760, 880], [860, 850]]]
 note = "The striped swell rising to the right edge."
 
 [[part]]
 name = "boat-front"
+reach = 8
 regions = [[[650, 845], [700, 900], [740, 925], [900, 985], [1110, 985], [1130, 945], [1250, 945], [1330, 985], [1310, 1020], [1240, 1030], [1100, 1050], [900, 1050], [840, 1040], [720, 960], [660, 890]]]
 note = "The nearest boat, riding the swell at the bottom."
 

@@ -3,10 +3,10 @@
 
 Usage: tries/bob-code.py [width]
 
-Reads out/parts/ and parts.toml. Writes out/tries/bob-code.mp4 twice over: once with the hole
-behind the boat left open (shown in magenta), once with it filled from the picture around it.
+Reads out/parts/ and parts.toml, and the still from $OMARCHY_PATH. Writes out/tries/bob-code.mp4.
 """
 
+import os
 import subprocess
 import sys
 import tomllib
@@ -15,7 +15,6 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 from scipy import ndimage as ndi
-from skimage.restoration import inpaint_biharmonic
 
 HERE = Path(__file__).resolve().parent.parent
 WIDTH = int(sys.argv[1]) if len(sys.argv) > 1 else 960
@@ -33,37 +32,27 @@ def main():
   rows, columns = np.where(boat[..., 3] > 0.5)
   centre = (rows.mean(), columns.mean())
 
-  # The parts share every pixel between them, so at working size they add up to the still.
-  # Stacking them one over the other instead leaves a seam along every edge, because two
-  # half-covered pixels over each other do not make a covered one.
-  still_frame = sum(layers)[..., :3]
-  seams = stack(layers)[..., 3] < 0.98
-  print(f"stacked one over the other, {seams.mean():.1%} of the picture shows through as seams")
+  # The parts overlap, each painted in under the ones in front, so they stack like any layers.
+  still_path = Path(os.environ["OMARCHY_PATH"]) / tomllib.loads((HERE / "parts.toml").read_text())["still"]
+  still = Image.open(still_path).convert("RGB").resize((WIDTH, height), Image.LANCZOS)
+  still = np.asarray(still).astype(np.float32) / 255
+  rest = stack(layers)
+  off = np.abs(rest[..., :3] - still).max(-1) * 255
+  print(f"stacked at rest: {(rest[..., 3] < 0.98).mean():.2%} of the picture shows through; against the still, "
+        f"{(off > 8).mean():.2%} of pixels are off by more than 8 levels (largest {off.max():.0f})")
 
-  # Behind the boat. Where the boat only half covers a pixel, the rest of that pixel is known:
-  # it is the still minus the boat's share. Only where the boat covers a pixel fully is the
-  # picture behind it unknown, and that is either left open or painted in from around it.
-  alpha = boat[..., 3:]
-  hidden = alpha[..., 0] > 0.98
-  known = (still_frame - boat[..., :3]) / np.maximum(1 - alpha, 0.02)
-  painted = inpaint_biharmonic(np.where(hidden[..., None], 0, known), hidden, channel_axis=-1)
-  in_front = sum(layers[moving + 1:])[..., 3:].clip(0, 1)
-
+  # Only the change the boat makes is added to the still, so a boat at rest gives the still back exactly.
+  frames = []
+  for number in range(SECONDS * FPS):
+    phase = 2 * np.pi * number / (SECONDS * FPS)
+    moved = move(boat, centre, -LIFT * height * np.sin(phase), TILT * np.sin(phase + 0.9) - TILT * np.sin(0.9))
+    frame = still + stack(layers[:moving] + [moved] + layers[moving + 1:])[..., :3] - rest[..., :3]
+    frames.append((frame.clip(0, 1) * 255).round().astype(np.uint8))
+  first_off = np.abs(frames[0].astype(int) - (still * 255).round().astype(int))
+  print(f"first frame differs from the still by at most {first_off.max()} levels")
   (HERE / "out" / "tries").mkdir(exist_ok=True)
-  for label, behind in (("open", np.where(hidden[..., None], np.array([1.0, 0, 1.0]), known)), ("filled", painted)):
-    frames = []
-    for number in range(SECONDS * FPS):
-      phase = 2 * np.pi * number / (SECONDS * FPS)
-      moved = move(boat, centre, -LIFT * height * np.sin(phase), TILT * np.sin(phase + 0.9) - TILT * np.sin(0.9))
-      # Only the change is added to the still, and only where nothing in front covers it,
-      # so a boat at rest gives the still back exactly.
-      change = over(behind, moved) - over(behind, boat)
-      frame = still_frame + (1 - in_front) * change
-      frames.append((frame.clip(0, 1) * 255).round().astype(np.uint8))
-    first_off = np.abs(frames[0].astype(int) - (still_frame.clip(0, 1) * 255).round().astype(int))
-    print(f"{label}: first frame differs from the still by at most {first_off.max()} levels")
-    encode(frames, HERE / "out" / "tries" / f"bob-code-{label}.mp4")
-    Image.fromarray(frames[len(frames) // 4]).save(HERE / "out" / "tries" / f"bob-code-{label}-peak.png")
+  encode(frames, HERE / "out" / "tries" / "bob-code.mp4")
+  Image.fromarray(frames[len(frames) // 4]).save(HERE / "out" / "tries" / "bob-code-peak.png")
 
 
 def load(path):
@@ -80,10 +69,6 @@ def stack(layers):
   for layer in layers:
     result = layer + result * (1 - layer[..., 3:])
   return result
-
-
-def over(backdrop, layer):
-  return layer[..., :3] + backdrop[..., :3] * (1 - layer[..., 3:])
 
 
 def move(layer, centre, down, degrees):

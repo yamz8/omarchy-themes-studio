@@ -8,32 +8,39 @@ The still is Hokusai's *Under the Wave off Kanagawa*, a woodblock print: flat ar
 
 | File | What it is |
 | --- | --- |
-| `parts.toml` | The judgment: the twelve parts of the picture, back to front, each with a rough region drawn by eye |
+| `parts.toml` | The judgment: the twelve parts of the picture, back to front, each with a rough region drawn by eye, and how far each is painted in behind |
 | `open.py` | The recipe: reads the still and `parts.toml`, writes everything in `out/` |
-| `out/` | The material. Not kept in git; `open.py` rebuilds it in about a minute |
+| `behind.py` | The part of the recipe that paints in what a part would show where nearer parts cover it |
+| `tries/` | The same small motion made from code and in Blender, to see what each needs |
+| `out/` | The material. Not kept in git; `open.py` rebuilds it in about a minute and a half |
 
 ## What the recipe makes
 
 | In `out/` | What it is |
 | --- | --- |
-| `parts/NN-name.png` | Each part alone, full size, clear everywhere else |
+| `parts/NN-name.png` | Each part, full size: itself where it shows, and painted in where nearer parts cover it. The parts overlap, so they stack like any layers |
 | `1-kanagawa.ora` | The same parts as layers in one file, for Krita, GIMP and other painting programs |
-| `parts.png`, `parts.json` | One flat map: each pixel holds its part's number |
-| `inks/N-colour.png` | The picture split by ink instead of by part, lightest first |
+| `parts.png`, `parts.json` | One flat map of where each part shows: each pixel holds its part's number |
+| `inks/N-colour.png`, `inks.png` | The picture split by ink instead of by part, lightest first, and the same as one flat map |
 | `areas.png` | Every connected area of one ink, numbered (red + 256 x green + 65536 x blue), for cutting the picture a different way |
-| `sheet.jpg` | Everything at a glance |
+| `sheet.jpg` | Everything at a glance, with the boats, spray, cloud and text taken away at the end |
 
 ## How a part is cut
 
-Nobody traces an outline. A part's region in `parts.toml` is a loose polygon. The recipe finds every connected area of one ink, and each area goes whole to the part most of it fell in, so the cut follows the print's own lines. Only an area truly shared between parts, like the paper that runs from one wave into the next, is cut along the drawn line.
+Nobody traces an outline. A part's region in `parts.toml` is a loose polygon. The recipe finds every connected area of one ink, and each area goes whole to the part that holds nearly all of it, so the cut follows the print's own lines. Only an area truly shared between parts, like the paper that runs from one wave into the next, is cut along the drawn line. A nearer part then takes the thin edge it shares with the parts behind it (`edge`), because those pixels are a blend of both and would stay behind as a ghost outline.
 
-The recipe ends by reading the parts back and stacking them. It fails unless they give the still back, pixel for pixel.
+## How a part is painted in behind
+
+Under the parts in front of it, as far as its `reach`, a part is continued the way the print is made: each hidden pixel takes the ink of the nearest place the part shows, that ink's colour as it drifts across the part, and paper grain tiled from a clean patch of the same ink. The sky has no inks to continue (`behind = "graded"`), so its colour is carried sideways along each row, and it is painted across the whole picture.
+
+The recipe ends by reading the parts back and stacking them one over the other. It fails unless they give the still back, pixel for pixel.
 
 ## What is rough or missing
 
-- **Nothing is behind a part.** Lift a boat out and there is a hole. Any motion larger than a few pixels needs the hidden picture painted in.
-- **Edges are hard.** Each pixel belongs to one part. The cloud fades into the sky with no line, so its lower edge comes out ragged.
-- **Some cuts are wrong.** The cloud carries the tips of the wave's claws where they cross it, the boats carry a few scraps of sky and water, and the signature is cut as a box.
+- **Painting in works for thin edges and for the sky, not for large hidden areas.** Take the cloud or the text away and the sky closes over them. Take a boat away and the water under it is a patchwork: the continued inks meet in blobs, not in the wave's own stripes. That needs real painting, by hand or by an AI service.
+- **A wrong cut becomes a wrong fill.** Scraps of a boat left in a wave are continued as boat-coloured patches under the boat.
+- **Edges are hard.** Each pixel shows one part. The cloud fades into the sky with no line, so it is cut with a wide edge and carries a rim of sky with it.
+- **Some cuts are wrong.** A few dots of spray and strokes of the wave's outline are left in the sky, the boats carry scraps of sky and water, and the signature is cut as a box.
 - **Where one wave ends is a choice.** The sea is one body of water. Splitting it into great wave, front wave and right swell was a call, and a different motion may want a different one.
 - **The inks are found, not named.** Nine colours by clustering; the boats' yellow did not get one of its own.
 - **Not tried everywhere.** Code and Blender have been tried, below. The `.ora` file has not been opened in Krita or GIMP, and nothing has been handed to an AI service.
@@ -44,14 +51,14 @@ The same small motion, made twice from the same parts, to see what each way of w
 
 **From code** (`tries/bob-code.py`, NumPy and ffmpeg, a six-second loop at 960 wide):
 
-- Stacking the parts one over the other at any size but their own leaves seams on 2.7% of the picture, because two half-covered pixels over each other do not make a covered one. The parts have to be added up instead, which layer programs do not do.
-- The first frame only equalled the still once the frame was built as the still plus the change the boat makes. Built from the parts up, it was off around the boat.
-- The picture behind the boat was painted in by smoothing from its surroundings. Even for a bob of 0.7% of the height, the smear shows along the hull.
+- The parts stack one over the other with nothing showing through. Before they overlapped, 2.7% of the picture showed through as seams along every edge.
+- Stacked at rest at 960 wide they are close to the still but not it: 1.25% of pixels are off by more than 8 levels, where a painted-in edge sits under a soft one. So each frame is built as the still plus the change the boat makes, and then the first frame is the still exactly.
+- Lifted, the boat leaves no hole and no smear. Its bow shows a short painted-in tip that was never in the print.
 
 **In Blender** (`blender -b --python tries/bob-blender.py`, every part a flat plane under a straight-down camera):
 
-- At the still's own size, with closest-pixel textures, a 0.01 pixel filter and the Standard view, the render at rest is the still: no pixel differs.
-- With Blender's defaults at 960 wide it is not: softer and about 3 levels brighter, with 22% of pixels off by more than 8 levels. So the settings are part of the material, and the scene is saved as `out/tries/kanagawa-parts.blend`.
-- Nothing is behind the boat here either. Lifted, it leaves a dark gap.
+- At the still's own size, with closest-pixel textures, a 0.01 pixel filter and the Standard view (`-- exact`), the render at rest is the still: no pixel differs.
+- With Blender's defaults at 960 wide it is not: softer and about 3 levels brighter, with 21.5% of pixels off by more than 8 levels. So the settings are part of the material, and the scene is saved as `out/tries/kanagawa-parts.blend`.
+- Lifted, the boat leaves no gap.
 
-Only two frames were rendered in Blender, at rest and at the top of the bob. Neither loop has been played on the desktop or run through the loops repository's check.
+Only two frames were rendered in Blender, at rest and at the top of the bob. The loop has not been played on the desktop or run through the loops repository's check.
