@@ -36,4 +36,22 @@ The recipe ends by reading the parts back and stacking them. It fails unless the
 - **Some cuts are wrong.** The cloud carries the tips of the wave's claws where they cross it, the boats carry a few scraps of sky and water, and the signature is cut as a box.
 - **Where one wave ends is a choice.** The sea is one body of water. Splitting it into great wave, front wave and right swell was a call, and a different motion may want a different one.
 - **The inks are found, not named.** Nine colours by clustering; the boats' yellow did not get one of its own.
-- **Not tried in any tool yet.** The files are written and the stack check passes. Nothing has been opened in Krita or Blender or handed to an AI service.
+- **Not tried everywhere.** Code and Blender have been tried, below. The `.ora` file has not been opened in Krita or GIMP, and nothing has been handed to an AI service.
+
+## Tried: the far boat bobs
+
+The same small motion, made twice from the same parts, to see what each way of working needs. Both write to `out/tries/`.
+
+**From code** (`tries/bob-code.py`, NumPy and ffmpeg, a six-second loop at 960 wide):
+
+- Stacking the parts one over the other at any size but their own leaves seams on 2.7% of the picture, because two half-covered pixels over each other do not make a covered one. The parts have to be added up instead, which layer programs do not do.
+- The first frame only equalled the still once the frame was built as the still plus the change the boat makes. Built from the parts up, it was off around the boat.
+- The picture behind the boat was painted in by smoothing from its surroundings. Even for a bob of 0.7% of the height, the smear shows along the hull.
+
+**In Blender** (`blender -b --python tries/bob-blender.py`, every part a flat plane under a straight-down camera):
+
+- At the still's own size, with closest-pixel textures, a 0.01 pixel filter and the Standard view, the render at rest is the still: no pixel differs.
+- With Blender's defaults at 960 wide it is not: softer and about 3 levels brighter, with 22% of pixels off by more than 8 levels. So the settings are part of the material, and the scene is saved as `out/tries/kanagawa-parts.blend`.
+- Nothing is behind the boat here either. Lifted, it leaves a dark gap.
+
+Only two frames were rendered in Blender, at rest and at the top of the bob. Neither loop has been played on the desktop or run through the loops repository's check.
