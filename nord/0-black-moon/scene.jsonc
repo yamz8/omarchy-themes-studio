@@ -1,42 +1,24 @@
-// The scene for nord/0-black-moon: a first draft, written by hand to settle the
-// format before anything is built. Nothing plays this file yet, and the
-// pictures it names have not been made.
+// The scene for nord/0-black-moon. Nothing is cut out of this still: two effects
+// work on two areas of it. It has no arrive part, so the theme's intro clip
+// still plays when the background appears.
 {
-  // The still this scene belongs to, as the theme repositories name it. With
-  // nothing moving, the scene is this picture exactly.
   "still": "nord/0-black-moon.jpg",
   "sha256": "6873fbf7d4cbb9a39604094dd8d804eb6d231e63ecf56e5c297aae90358eff81",
 
-  // Areas of the still an effect can work on. A mask is a grey picture of the
-  // still's shape: white where the effect is at full strength, black where the
-  // still is left alone. Nothing is cut out, so nothing behind needs painting.
+  // An area is a place in the still and a grey picture of its shape: white
+  // where an effect works in full, black where the still is left alone.
+  // cut.py makes both.
   "areas": [
-    { "name": "stars", "mask": "stars.webp" },
-    { "name": "sea", "mask": "sea.webp" }
+    { "name": "sky", "mask": "pieces/sky.png", "at": [0.0, 0.0, 1.0, 0.875] },
+    { "name": "sea", "mask": "pieces/sea.png", "at": [0.26, 0.855, 0.74, 0.145] }
   ],
 
-  // Pieces cut out of the still that can move, back to front. "behind" is what
-  // the still would show where the piece was.
-  "pieces": [
-    { "name": "moon", "picture": "moon.webp", "behind": "moon-behind.webp" },
-    { "name": "mountains", "picture": "mountains.webp" }
-  ],
-
-  // Repeats for as long as the desktop may move. Every motion passes through
-  // rest, so it can settle and stop at any time.
+  // Repeats for as long as the desktop may move.
   "idle": {
     "frames_a_second": 12,
-    "stars": { "twinkle": 0.35, "seconds": 5 },
-    "sea": { "drift": [0.004, 0.001], "seconds": 14 }
-  },
-
-  // Plays once when the background appears, and ends at rest. Distances are
-  // shares of the picture's height. The moon rises from behind the mountains,
-  // then the stars come up.
-  "arrive": {
-    "frames_a_second": 30,
-    "seconds": 6,
-    "moon": { "from": { "y": 0.45 } },
-    "stars": { "from": { "fade": 0 }, "after": 3 }
+    // The stars and the dust of the rings brighten and dim, each in its own time.
+    "sky": { "twinkle": { "amount": 0.7, "size": 0.003, "seconds": 7 } },
+    // The surf is pushed gently back and forth.
+    "sea": { "drift": { "amount": [0.005, 0.0015], "size": 0.07, "seconds": 9 } }
   }
 }
