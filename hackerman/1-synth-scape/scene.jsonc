@@ -1,0 +1,26 @@
+// The scene for hackerman/1-synth-scape: a wave of light crosses the wireframe
+// mountains, from the far ridge towards the viewer, as in the still's loop.
+// Nothing is cut out of the still. One effect of the scene's own adds the
+// light; a grey picture says where it falls and how much. cut.py makes both.
+{
+  "still": "hackerman/1-synth-scape.jpg",
+  "sha256": "c7d2594935f204e0df1b43dfe7a12389ea1c1d3fd8e57a92a9f08497f27a377e",
+
+  // The band of the picture the mountains are in. The picture of its shape is
+  // white where the light is strongest: on the lines, and in a glow round them.
+  "areas": [
+    { "name": "mountains", "mask": "pieces/light.webp", "at": [0, 0.558824, 1, 0.352941] }
+  ],
+
+  // The scene's own effect. "amount" is the light the brightest place gets, as
+  // a share of white, and the cycle is the loop's 92 frames at 24 a second.
+  "effects": [
+    { "name": "pass", "shader": "effects/pass.glsl", "values": { "amount": 0.4672, "seconds": 3.8333 } }
+  ],
+
+  // Repeats for as long as the desktop may move.
+  "idle": {
+    "frames_a_second": 24,
+    "mountains": { "pass": {} }
+  }
+}

@@ -13,8 +13,8 @@ Measured on 2026-11-27 on the laptop (Intel UHD 620, 1920x1080 at scale 1.6), pl
 
 `check.py` draws all 384 frames with the real player and compares them with the shipped loop:
 
-- At rest the scene is the still to within 1 level. The loop's own first frame is 1.1 levels darker than the still all over, from its colour conversion.
-- The scene's motion is 0.43 levels from the loop's on average and 0.50 on its worst frame. The loop's own grain is 0.58 levels, so what is left is the video's coarseness.
+- At rest the scene is the still to within 1 level, and so is the loop's first frame.
+- The scene's motion is 0.26 levels from the loop's on average and 0.28 on its worst frame, on a motion of 1.3 levels. The two motions agree 0.97 on average.
 - Trying other values against the loop, the fit is best at the amount the scene has (0.016 of the height) and with no shift in time.
 - From its last frame to its first the scene steps 0.01 levels.
 

@@ -23,12 +23,12 @@ W, H, FPS, BATCH = 1536, 1024, 24, 48
 
 
 def main():
-  raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(THEMES / "loops" / "1-color-fade.mp4"), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+  raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(THEMES / "loops" / "1-color-fade.mp4"), "-vf", "scale=flags=accurate_rnd+full_chroma_int,format=rgb24", "-f", "rawvideo", "-"],
                        capture_output=True, check=True).stdout
   loop = np.frombuffer(raw, np.uint8).reshape(-1, H, W, 3)
   still = np.asarray(Image.open(THEMES / "1-color-fade.webp").convert("RGB")).astype(int)
-  # The video is a little darker than the still all over, moving or not; what is compared is the
-  # motion, so each is measured from its own first frame.
+  # What is compared is the motion, so each is measured from its own first frame. The video is
+  # decoded with ffmpeg's accurate conversion: its quick one comes out about a level dark.
   shift = (loop[0].astype(int) - still).mean()
   apart, moved, together, first = [], [], [], None
   for start in range(0, len(loop), BATCH):
@@ -49,7 +49,7 @@ def main():
         together.append(float((a * b).sum() / max(np.sqrt((a * a).sum() * (b * b).sum()), 1e-9)) if moved[-1] > 0.5 else np.nan)
   apart, moved, together = map(np.array, (apart, moved, together))
   print(f"{len(loop)} frames against the loop:")
-  print(f"  at rest the scene is the still to within {rest} level; the loop's first frame is {abs(shift):.1f} levels {'darker' if shift < 0 else 'lighter'} than the still")
+  print(f"  at rest the scene is the still to within {rest} level; the loop's first frame is {abs(shift):.2f} levels from the still on average")
   print(f"  the loop moves the picture {moved.mean():.2f} levels on average, {moved.max():.2f} at its furthest")
   print(f"  the scene's motion is {apart.mean():.2f} levels from the loop's on average, {apart.max():.2f} on its worst frame")
   print(f"  the two motions agree {np.nanmean(together):.3f} on average, {np.nanmin(together):.3f} at worst (1 is the same motion)")
