@@ -2,7 +2,7 @@
 
 A first try at what "a theme opened up" could mean, made to think the pattern through. Rough on purpose.
 
-The still is Hokusai's *Under the Wave off Kanagawa*, a woodblock print: flat areas of a few inks, dark blue outlines, bare paper for the foam and the cloud, and a graded sky. In Omarchy it is `themes/kanagawa/backgrounds/1-kanagawa.jpg`, 4335x2990, a JPEG at quality 60. The print is in the public domain; where this scan came from is not recorded here.
+The still is Hokusai's *Under the Wave off Kanagawa*, a woodblock print: flat areas of a few inks, dark blue outlines, bare paper for the foam and the cloud, and a graded sky. In Omarchy it is `kanagawa/1-kanagawa.jpg` in [omacom/omarchy-themes-backgrounds](https://github.com/omacom/omarchy-themes-backgrounds), 4335x2990, a JPEG at quality 60. The print is in the public domain; where this scan came from is not recorded here.
 
 ## What is here
 
@@ -11,6 +11,7 @@ The still is Hokusai's *Under the Wave off Kanagawa*, a woodblock print: flat ar
 | `parts.toml` | The judgment: the twelve parts of the picture, back to front, each with a rough region drawn by eye, and how far each is painted in behind |
 | `open.py` | The recipe: reads the still and `parts.toml`, writes everything in `out/` |
 | `behind.py` | The part of the recipe that paints in what a part would show where nearer parts cover it |
+| `still.py` | Finds the still on this machine by its name and refuses a picture that is not the one `parts.toml` was drawn on |
 | `tries/` | The same small motion made from code and in Blender, to see what each needs |
 | `out/` | The material. Not kept in git; `open.py` rebuilds it in about a minute and a half |
 

@@ -3,10 +3,9 @@
 
 Usage: tries/bob-code.py [width]
 
-Reads out/parts/ and parts.toml, and the still from $OMARCHY_PATH. Writes out/tries/bob-code.mp4.
+Reads out/parts/, parts.toml and the still this machine has installed. Writes out/tries/bob-code.mp4.
 """
 
-import os
 import subprocess
 import sys
 import tomllib
@@ -17,6 +16,8 @@ from PIL import Image
 from scipy import ndimage as ndi
 
 HERE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(HERE))
+from still import find_still  # noqa: E402
 WIDTH = int(sys.argv[1]) if len(sys.argv) > 1 else 960
 SECONDS, FPS = 6, 24
 LIFT, TILT = 0.007, 0.7  # share of the picture's height, and degrees
@@ -33,7 +34,7 @@ def main():
   centre = (rows.mean(), columns.mean())
 
   # The parts overlap, each painted in under the ones in front, so they stack like any layers.
-  still_path = Path(os.environ["OMARCHY_PATH"]) / tomllib.loads((HERE / "parts.toml").read_text())["still"]
+  still_path = find_still(tomllib.loads((HERE / "parts.toml").read_text()))
   still = Image.open(still_path).convert("RGB").resize((WIDTH, height), Image.LANCZOS)
   still = np.asarray(still).astype(np.float32) / 255
   rest = stack(layers)

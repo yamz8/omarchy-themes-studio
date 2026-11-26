@@ -1,7 +1,7 @@
 # The judgment in this folder: what the parts of the picture are and roughly where each one is.
 # open.py turns it into exact cut-outs by snapping these rough regions to the print's own colour areas.
 
-still = "themes/kanagawa/backgrounds/1-kanagawa.jpg"
+still = "kanagawa/1-kanagawa.jpg"
 sha256 = "9b817d717688539f0db87603b661992839c3cbb5d4918a02a4efc05c9f88b27d"
 
 # The regions were drawn by eye on a copy of the still this wide.

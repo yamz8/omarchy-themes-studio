@@ -3,13 +3,11 @@
 
 Usage: open.py [still] [out directory]
 
-Reads parts.toml beside this file. The still defaults to the one in $OMARCHY_PATH.
+Reads parts.toml beside this file. Without a path, the still is the one this machine has installed.
 Writes everything to out/ (not kept in git; run this again to rebuild it).
 """
 
-import hashlib
 import json
-import os
 import sys
 import tomllib
 import zipfile
@@ -22,6 +20,7 @@ from scipy.cluster.vq import kmeans2
 from skimage import color
 
 from behind import paint_behind
+from still import find_still
 
 HERE = Path(__file__).resolve().parent
 INKS = 9          # colours the print is read as
@@ -32,10 +31,8 @@ SHEET_CELL = 800
 
 def main():
   spec = tomllib.loads((HERE / "parts.toml").read_text())
-  still_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(os.environ["OMARCHY_PATH"]) / spec["still"]
+  still_path = find_still(spec, sys.argv[1] if len(sys.argv) > 1 else None)
   out = Path(sys.argv[2]) if len(sys.argv) > 2 else HERE / "out"
-  if hashlib.sha256(still_path.read_bytes()).hexdigest() != spec["sha256"]:
-    sys.exit(f"{still_path} is not the still parts.toml was drawn on")
   (out / "inks").mkdir(parents=True, exist_ok=True)
   (out / "parts").mkdir(exist_ok=True)
 
