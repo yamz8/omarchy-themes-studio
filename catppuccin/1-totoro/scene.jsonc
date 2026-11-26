@@ -1,0 +1,44 @@
+// The scene for catppuccin/1-totoro: a first draft, written by hand to settle
+// the format. Nothing plays this file yet, and its pictures have not been cut.
+//
+// This background already ships an intro and a loop as video. The scene is
+// meant to show the same two motions, so the two ways can be compared directly.
+{
+  "still": "catppuccin/1-totoro.webp",
+  "sha256": "4896da620ed3016b7e52eede8db8169591a9fa4856064db4039521be96f724b6",
+
+  // Pieces cut out of the still, back to front. With every piece at home the
+  // scene is the still exactly. "behind" is what the still shows where the
+  // piece was; here that is always the smooth colour of the circle.
+  "pieces": [
+    { "name": "circle", "picture": "circle.webp" },
+    { "name": "totoro", "picture": "totoro.webp", "inside": "circle" },
+    { "name": "sprites-left", "picture": "sprites-left.webp" },
+    { "name": "sprites-top", "picture": "sprites-top.webp" },
+    { "name": "sprites-right", "picture": "sprites-right.webp" },
+    { "name": "sprite-low", "picture": "sprite-low.webp" }
+  ],
+
+  // Repeats while the desktop may move: the soot sprites float a little, each
+  // group at its own pace. Distances are shares of the picture's height.
+  "idle": {
+    "frames_a_second": 12,
+    "sprites-left": { "y": { "swing": 0.004, "seconds": 7 }, "x": { "swing": 0.002, "seconds": 11 } },
+    "sprites-top": { "y": { "swing": 0.003, "seconds": 9 } },
+    "sprites-right": { "y": { "swing": 0.004, "seconds": 8 }, "x": { "swing": 0.002, "seconds": 13 } },
+    "sprite-low": { "y": { "swing": 0.005, "seconds": 6 } }
+  },
+
+  // Plays once when the background appears, and ends at rest: the circle
+  // grows from a dot, Totoro rises into it, then the sprites pop in.
+  "arrive": {
+    "frames_a_second": 30,
+    "seconds": 5,
+    "circle": { "size": { "from": 0.3 }, "for": 1.5 },
+    "totoro": { "y": { "from": 0.25 }, "after": 1, "for": 2 },
+    "sprites-left": { "fade": { "from": 0 }, "size": { "from": 0.5 }, "after": 2.6, "for": 0.5 },
+    "sprites-top": { "fade": { "from": 0 }, "size": { "from": 0.5 }, "after": 2.9, "for": 0.5 },
+    "sprites-right": { "fade": { "from": 0 }, "size": { "from": 0.5 }, "after": 3.2, "for": 0.5 },
+    "sprite-low": { "fade": { "from": 0 }, "size": { "from": 0.5 }, "after": 3.5, "for": 0.5 }
+  }
+}
