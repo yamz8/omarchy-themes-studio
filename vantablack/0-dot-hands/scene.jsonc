@@ -1,0 +1,30 @@
+// The scene for vantablack/0-dot-hands: a swell passes over the hands from left
+// to right once a cycle, and each dot grows as it passes and shrinks back, the
+// small dots much further than the large ones. Nothing is cut out of the
+// still: one effect of the scene's own grows the dots where they are. cut.py
+// made the shape and took the motion from the shipped loop.
+{
+  "still": "vantablack/0-dot-hands.webp",
+  "sha256": "a51e0dc5406d054ddfe16dc732ada4061c733a9e6f985a3ff773ba1e803ad3a0",
+
+  // The band the hands are in. Its shape is each dot with the room it swells
+  // into: white round the small dots, mid grey round the large ones.
+  "areas": [
+    { "name": "dots", "mask": "pieces/dots.png", "at": [0.0, 0.29, 1.0, 0.42] }
+  ],
+
+  // "reach" is how much a dot's radius grows at the swell's height, small dots
+  // then large, as shares of the picture's height. "sweep" is when the swell
+  // reaches a place: so many seconds into the cycle at the left edge, and so
+  // many more to cross the picture.
+  "effects": [
+    { "name": "swell", "shader": "effects/swell.glsl",
+      "values": { "reach": [0.00149, 0.00064], "sweep": [0.848, 6.385], "seconds": 8.0833 } }
+  ],
+
+  // Repeats for as long as the desktop may move.
+  "idle": {
+    "frames_a_second": 24,
+    "dots": { "swell": {} }
+  }
+}

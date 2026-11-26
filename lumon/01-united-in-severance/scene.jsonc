@@ -1,0 +1,36 @@
+// The scene for lumon/01-united-in-severance. Nothing is cut out of the still.
+// Three effects of the scene's own each work on their own part of it: lights
+// run along the five lines, a light runs once round the globe's outline, and
+// the words dim and come back. measure.py took the timings from the shipped
+// loop; the places come from the still.
+{
+  "still": "lumon/01-united-in-severance.webp",
+  "sha256": "cdfb3d4cb22077ed5f2a73ac8822b6c4e3614a210c5947194c046078ab5073a5",
+
+  // Three rectangles that do not touch. With no picture of its shape, an area
+  // is its whole rectangle; each shader keeps to the strokes itself.
+  "areas": [
+    { "name": "globe", "at": [0.4036, 0.3380, 0.1928, 0.1870] },
+    { "name": "lines", "at": [0.0, 0.5463, 1.0, 0.1065] },
+    { "name": "words", "at": [0.4141, 0.6736, 0.1719, 0.0190] }
+  ],
+
+  "effects": [
+    // "speed" is how far a light runs in a second, as a share of the width;
+    // "glow" how strong it is just off a stroke, against 1 on it.
+    { "name": "comets", "shader": "effects/comets.glsl", "values": { "speed": 0.1565, "glow": 0.145, "seconds": 10 } },
+    // "run" is when the light's head would be at the oval's right end, in
+    // seconds into the cycle, and how many times round it goes in a second.
+    { "name": "orbit", "shader": "effects/orbit.glsl",
+      "values": { "middle": [0.4999, 0.43125], "radii": [0.15833, 0.07963], "run": [-4.31, 0.10649], "glow": 0.145, "seconds": 10 } },
+    { "name": "dim", "shader": "effects/dim.glsl", "values": { "seconds": 10 } }
+  ],
+
+  // Repeats for as long as the desktop may move.
+  "idle": {
+    "frames_a_second": 24,
+    "globe": { "orbit": {} },
+    "lines": { "comets": {} },
+    "words": { "dim": {} }
+  }
+}

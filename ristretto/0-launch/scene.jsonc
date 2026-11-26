@@ -1,0 +1,23 @@
+// The scene for ristretto/0-launch: the five stripes sway on a wave that
+// travels down them. Nothing is cut out of the still. One effect of the
+// scene's own slides each stripe sideways, row by row, as the shipped loop
+// does; measure.py took the motion from that loop and wrote the shader.
+{
+  "still": "ristretto/0-launch.webp",
+  "sha256": "42d3a7bfe5cbf36361e8c0152c9fca2c6e3302e779690aed5a2d6ea0ab985044",
+
+  // The whole picture. An area with no picture of its shape is its rectangle.
+  "areas": [
+    { "name": "picture", "at": [0, 0, 1, 1] }
+  ],
+
+  "effects": [
+    { "name": "sway", "shader": "effects/sway.glsl", "values": { "amount": 1, "seconds": 14 } }
+  ],
+
+  // Repeats for as long as the desktop may move.
+  "idle": {
+    "frames_a_second": 24,
+    "picture": { "sway": {} }
+  }
+}
