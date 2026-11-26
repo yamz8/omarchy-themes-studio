@@ -11,24 +11,31 @@
   // Shapes in the still that a piece can be kept inside. "at" is left, top,
   // width and height as shares of the still.
   "areas": [
-    { "name": "eyes", "mask": "pieces/eyes.png", "at": [0.451302, 0.578241, 0.101302, 0.042593] }
+    { "name": "eyes", "mask": "pieces/eyes.png", "at": [0.451302, 0.578241, 0.101302, 0.042593] },
+    { "name": "circle", "mask": "pieces/disc.png", "at": [0.336458, 0.209259, 0.327083, 0.581481] }
   ],
 
   // Pieces that move, back to front. A soot sprite's picture is its shape; its
   // colour is the still's own, less "behind", the circle where it sits. So with
   // every piece at home the scene is the still exactly, at any size.
   "pieces": [
-    { "name": "sprite-1", "picture": "pieces/sprite-1.png", "behind": "pieces/sprite-1-behind.png", "at": [0.589063, 0.290741, 0.03151, 0.054167] },
-    { "name": "sprite-2", "picture": "pieces/sprite-2.png", "behind": "pieces/sprite-2-behind.png", "at": [0.374479, 0.325926, 0.029687, 0.050926] },
-    { "name": "sprite-3", "picture": "pieces/sprite-3.png", "behind": "pieces/sprite-3-behind.png", "at": [0.58125, 0.325926, 0.05599, 0.095833] },
-    { "name": "sprite-4", "picture": "pieces/sprite-4.png", "behind": "pieces/sprite-4-behind.png", "at": [0.365625, 0.35, 0.032813, 0.056944] },
-    { "name": "sprite-5", "picture": "pieces/sprite-5.png", "behind": "pieces/sprite-5-behind.png", "at": [0.371615, 0.380093, 0.036458, 0.0625] },
-    { "name": "sprite-6", "picture": "pieces/sprite-6.png", "behind": "pieces/sprite-6-behind.png", "at": [0.386979, 0.407407, 0.040365, 0.068056] },
-    { "name": "sprite-7", "picture": "pieces/sprite-7.png", "behind": "pieces/sprite-7-behind.png", "at": [0.359375, 0.41713, 0.044531, 0.074537] },
-    { "name": "sprite-8", "picture": "pieces/sprite-8.png", "behind": "pieces/sprite-8-behind.png", "at": [0.378906, 0.463426, 0.038802, 0.066204] },
-    { "name": "sprite-9", "picture": "pieces/sprite-9.png", "behind": "pieces/sprite-9-behind.png", "at": [0.582812, 0.488889, 0.029687, 0.050926] },
-    { "name": "sprite-10", "picture": "pieces/sprite-10.png", "behind": "pieces/sprite-10-behind.png", "at": [0.571875, 0.525926, 0.05625, 0.073611] },
-    { "name": "sprite-11", "picture": "pieces/sprite-11.png", "behind": "pieces/sprite-11-behind.png", "at": [0.584375, 0.646759, 0.029427, 0.050926] },
+    // For the arrive part only: the circle with nothing on it, in its own
+    // colour, and Totoro, who sits on it and is only seen inside it.
+    { "name": "disc", "picture": "pieces/disc.png", "behind": "pieces/disc-behind.png", "at": [0.336458, 0.209259, 0.327083, 0.581481], "colour": "own" },
+    { "name": "totoro", "picture": "pieces/totoro.png", "behind": "pieces/totoro-behind.png", "at": [0.390625, 0.444907, 0.215365, 0.345833], "on": "disc", "inside": "circle" },
+    // His whiskers, which the intro brings in once he has settled.
+    { "name": "whiskers", "picture": "pieces/whiskers.png", "behind": "pieces/whiskers-behind.png", "at": [0.383333, 0.587037, 0.222135, 0.071759], "on": "disc" },
+    { "name": "sprite-1", "picture": "pieces/sprite-1.png", "behind": "pieces/sprite-1-behind.png", "at": [0.589063, 0.290741, 0.03151, 0.054167], "on": "disc" },
+    { "name": "sprite-2", "picture": "pieces/sprite-2.png", "behind": "pieces/sprite-2-behind.png", "at": [0.374479, 0.325926, 0.029687, 0.050926], "on": "disc" },
+    { "name": "sprite-3", "picture": "pieces/sprite-3.png", "behind": "pieces/sprite-3-behind.png", "at": [0.58125, 0.325926, 0.05599, 0.095833], "on": "disc" },
+    { "name": "sprite-4", "picture": "pieces/sprite-4.png", "behind": "pieces/sprite-4-behind.png", "at": [0.365625, 0.35, 0.032813, 0.056944], "on": "disc" },
+    { "name": "sprite-5", "picture": "pieces/sprite-5.png", "behind": "pieces/sprite-5-behind.png", "at": [0.371615, 0.380093, 0.036458, 0.0625], "on": "disc" },
+    { "name": "sprite-6", "picture": "pieces/sprite-6.png", "behind": "pieces/sprite-6-behind.png", "at": [0.386979, 0.407407, 0.040365, 0.068056], "on": "disc" },
+    { "name": "sprite-7", "picture": "pieces/sprite-7.png", "behind": "pieces/sprite-7-behind.png", "at": [0.359375, 0.41713, 0.044531, 0.074537], "on": "disc" },
+    { "name": "sprite-8", "picture": "pieces/sprite-8.png", "behind": "pieces/sprite-8-behind.png", "at": [0.378906, 0.463426, 0.038802, 0.066204], "on": "disc" },
+    { "name": "sprite-9", "picture": "pieces/sprite-9.png", "behind": "pieces/sprite-9-behind.png", "at": [0.582812, 0.488889, 0.029687, 0.050926], "on": "disc" },
+    { "name": "sprite-10", "picture": "pieces/sprite-10.png", "behind": "pieces/sprite-10-behind.png", "at": [0.571875, 0.525926, 0.05625, 0.073611], "on": "disc" },
+    { "name": "sprite-11", "picture": "pieces/sprite-11.png", "behind": "pieces/sprite-11-behind.png", "at": [0.584375, 0.646759, 0.029427, 0.050926], "on": "disc" },
     // Not in the still: Totoro's own colour, the size of his eyes, resting just
     // above them and only ever seen inside their shape.
     { "name": "eyelids", "picture": "pieces/eyelids.png", "at": [0.451302, 0.578241, 0.101302, 0.042593], "inside": "eyes", "rest": { "y": -0.04659 } }
@@ -53,8 +60,30 @@
     // A blink: the eyelids come down that far for a moment, at these seconds
     // of every 8.
     "eyelids": { "y": { "pulse": 0.04659, "at": [1.39, 4.01, 4.39, 6.6], "lasts": 0.315, "every": 8 } }
-  }
+  },
 
-  // "arrive" is not written yet: the circle grows from a dot, Totoro rises
-  // into it, then the sprites pop in.
+  // Plays once when the background appears, and ends at rest, where idle takes
+  // over. "from" is where a value starts: a size of 0, or a distance below
+  // home as a share of the still's height. It sets off "after" that many
+  // seconds, swings past rest by the share "over", "peak" seconds after
+  // setting off, and settles. The numbers are measured from the shipped intro.
+  "arrive": {
+    "frames_a_second": 30,
+    "seconds": 5.2,
+    "disc": { "size": { "from": 0, "after": 0.258, "over": 0.211, "peak": 0.402 } },
+    "totoro": { "y": { "from": 0.3432, "after": 1.099, "over": 0.084, "peak": 0.681 } },
+    // "for" is how long a value takes when it does not swing past rest.
+    "whiskers": { "fade": { "from": 0, "after": 2.1, "for": 0.25 } },
+    "sprite-1": { "size": { "from": 0, "after": 1.747, "over": 0.17, "peak": 0.25 } },
+    "sprite-2": { "size": { "from": 0, "after": 2.547, "over": 0.17, "peak": 0.25 } },
+    "sprite-3": { "size": { "from": 0, "after": 1.913, "over": 0.17, "peak": 0.25 } },
+    "sprite-4": { "size": { "from": 0, "after": 1.813, "over": 0.17, "peak": 0.25 } },
+    "sprite-5": { "size": { "from": 0, "after": 2.013, "over": 0.17, "peak": 0.25 } },
+    "sprite-6": { "size": { "from": 0, "after": 2.113, "over": 0.17, "peak": 0.25 } },
+    "sprite-7": { "size": { "from": 0, "after": 2.213, "over": 0.17, "peak": 0.25 } },
+    "sprite-8": { "size": { "from": 0, "after": 2.313, "over": 0.17, "peak": 0.25 } },
+    "sprite-9": { "size": { "from": 0, "after": 2.08, "over": 0.17, "peak": 0.25 } },
+    "sprite-10": { "size": { "from": 0, "after": 2.147, "over": 0.17, "peak": 0.25 } },
+    "sprite-11": { "size": { "from": 0, "after": 2.313, "over": 0.17, "peak": 0.25 } }
+  }
 }

@@ -24,6 +24,7 @@ LOOP = THEMES / "catppuccin/backgrounds/loops/1-totoro.mp4"
 ROOM = 40  # pixels kept around a piece, more than it ever travels
 DARK = 100  # a pixel darker than this is ink, not circle
 SOFT = 5  # pixels over which a piece's shape fades out past its ink
+EDGE = 3  # pixels inside the circle's edge where Totoro's own shape stops
 STILL_BELOW = 0.0005  # a swing smaller than this share of the height is no motion
 
 
@@ -81,6 +82,62 @@ def main():
     claimed.append((name, box, shape > 0))
     pieces.append({"name": name, "at": spot(box, width, height), **track[number - 1]})
 
+  # For the arrive part, the circle on its own and Totoro on it. The circle is its colour with
+  # nothing on it, in the shape of a disc; behind it is the dark around it.
+  away = np.hypot(yy - centre[0], xx - centre[1])
+  disc = (radius - away + 0.5).clip(0, 1)
+  outside = carried(still.astype(np.float32), ~ndi.binary_dilation(disc > 0, iterations=6), 24)
+  # Along its rim the disc is as much there as the still says: the share that takes the dark
+  # around it to the circle's colour. Where ink runs off the rim the still cannot say, and a
+  # round edge stands in.
+  rim = (np.abs(away - radius) < 4) & ~ndi.binary_dilation(ink & (away < radius + 2), iterations=8)
+  toward = circle - outside
+  share = ((still - outside) * toward).sum(-1) / np.maximum((toward * toward).sum(-1), 1)
+  disc = np.where(rim, share.clip(0, 1), disc).astype(np.float32)
+  box = roomy(disc > 0, height, width, room=12)
+  save(out / "disc.png", circle[box], disc[box])
+  save(out / "disc-behind.png", outside[box], ndi.binary_dilation(disc > 0, iterations=4)[box])
+  whole = {"disc": spot(box, width, height)}
+  # Totoro is everything inside his outline: his ink, and the eyes and belly it closes in. His
+  # belly runs off the bottom of the circle, so the dark below the circle closes it.
+  # His whiskers are the thin strokes of his ink that stand clear of his body. The intro brings
+  # them in after he has settled, so they are a piece of their own.
+  thick = ndi.binary_dilation(ndi.binary_opening(totoro, iterations=7), iterations=10)
+  whiskers = totoro & ~thick
+  parts, count = ndi.label(whiskers)
+  long = [k for k in range(1, count + 1) if (parts == k).sum() > 250]
+  whiskers = np.isin(parts, long)
+  below = (disc == 0) & (yy > centre[0] + 0.5 * radius)
+  # His sides meet the circle's edge through a few soft pixels; closing those keeps the belly in.
+  figure = ndi.binary_fill_holes(ndi.binary_closing(totoro | below, iterations=8)) & (disc > 0)
+  figure &= ~ndi.binary_dilation(np.any(sprites, 0), iterations=2)
+  # Around the whiskers, clear of his body, is theirs. Next to his body everything stays his, so
+  # no gap opens where a whisker joins him.
+  theirs = ndi.binary_dilation(whiskers, iterations=SOFT + 1) & ~thick
+  figure &= ~theirs
+  box = roomy(figure, height, width, room=12)
+  away = ndi.distance_transform_edt(~figure[box])
+  shape = (1 - (away - 0.5) / SOFT).clip(0, 1) * ((nearest == len(sprites) + 1) | figure)[box]
+  shape *= ~theirs[box]
+  # He stops a little inside the circle's edge, so he carries none of the dark around it.
+  shape *= (radius - np.hypot(yy - centre[0], xx - centre[1])[box] - EDGE).clip(0, 1)
+  shape = (shape * 255).round() / 255
+  save(out / "totoro.png", still[box].astype(np.float32), shape)
+  save(out / "totoro-behind.png", circle[box], shape > 0)
+  claimed.append(("totoro", box, shape > 0))
+  whole["totoro"] = spot(box, width, height)
+  wbox = roomy(whiskers, height, width, room=12)
+  away = ndi.distance_transform_edt(~whiskers[wbox])
+  wshape = (1 - (away - 0.5) / SOFT).clip(0, 1) * (nearest == len(sprites) + 1)[wbox]
+  wshape = (wshape * 255).round() / 255
+  # Where Totoro's own shape reaches, a pixel is his.
+  his = np.zeros(ink.shape, bool)
+  his[box] = shape > 0
+  wshape[his[wbox]] = 0
+  save(out / "whiskers.png", still[wbox].astype(np.float32), wshape)
+  save(out / "whiskers-behind.png", circle[wbox], wshape > 0)
+  whole["whiskers"] = spot(wbox, width, height)
+  claimed.append(("whiskers", wbox, wshape > 0))
   # Totoro's eyes are the two large light shapes inside him. An eyelid is his own colour, the size
   # of the eyes, and only ever shows inside their shape.
   holes, count = ndi.label(ndi.binary_fill_holes(totoro) & ~ink)
@@ -94,7 +151,7 @@ def main():
   save(out / "eyelids.png", np.ones(shape.shape + (3,)) * body, np.ones(shape.shape))
   lid = (box[0].stop - box[0].start) / height
 
-  (out / "motion.json").write_text(json.dumps({"pieces": pieces, "eyes": spot(box, width, height), "eyelid_travel": round(float(lid), 5)}, indent=2) + "\n")
+  (out / "motion.json").write_text(json.dumps({"pieces": pieces, "eyes": spot(box, width, height), "eyelid_travel": round(float(lid), 5), **whole}, indent=2) + "\n")
   check(claimed, ink.shape)
   print(f"{len(pieces)} sprites, eyes at {spot(box, width, height)} -> {out}")
 

@@ -8,7 +8,7 @@ The first background tried as a scene: a description and a few small pictures th
 | --- | --- |
 | `scene.jsonc` | The scene: which pieces move and how. Written to be changed by hand |
 | `cut.py` | Cuts the pieces out of the still and reads each sprite's motion from the shipped loop |
-| `pieces/` | What `cut.py` wrote: a shape and a patch for each of the eleven soot sprites, the eyelids, the shape of the eyes, and `motion.json` with what it measured. 204 KB |
+| `pieces/` | What `cut.py` wrote: a shape and a patch for each of the eleven soot sprites, for Totoro and for his whiskers, the bare circle, the eyelids, the shape of the eyes, and `motion.json` with what it measured. 648 KB |
 
 The still and the loop are read from where Omarchy installs them, `/usr/share/omarchy/themes/catppuccin/backgrounds/`.
 
@@ -16,11 +16,17 @@ The still and the loop are read from where Omarchy installs them, `/usr/share/om
 
 Read from the video by `cut.py`: eleven soot sprites each drift on a small path that takes 8 seconds, up to 12 pixels up and down and 5 side to side at the still's size, each starting at a different point of its path. Totoro blinks four times in the 8 seconds, his eyelids coming down from the top. Nothing else moves.
 
+## What the shipped intro does
+
+Measured from the video, 156 frames at 30 a second: the circle grows from nothing starting at 0.26 s and swings 21% past its size before settling. Totoro rises from a third of the screen's height below, starting at 1.1 s, and swings 8% past his place. His whiskers come in at about 2.1 s. The eleven sprites pop in one after another between 1.75 and 2.55 s, each swinging about 17% past its size.
+
 ## How a piece is made
 
 - **A piece is a shape, not a colour.** Its picture says where the sprite is, soft edge included. The player takes the colour from the still itself, less the patch of circle behind the sprite. Put back at home over that patch, a piece is the still again, at whatever size it is drawn. An earlier try stored each sprite's colour, and at half size its edges came out up to 63 levels off.
 - **No two pieces share a pixel.** Each shape stops halfway to its neighbours. `cut.py` fails if two overlap, because a patch would then cover part of a neighbour at rest.
 - **Every patch is drawn before any piece.** Sprites that sit close reach into each other's room; drawn one sprite at a time, a later patch cut a notch out of an earlier sprite.
+- **For arriving, the circle is a piece of its own colour with nothing on it,** and Totoro, his whiskers and the sprites sit on it. A piece that sits on another needs no patch while the other is drawn: what is behind it is then that piece, not the still.
+- **Totoro's shape stops three pixels inside the circle's edge,** so that lifted above his place he carries none of the dark around the circle. Below him the circle shows, as in the intro. A first try carried him on below the edge with invented body and belly; the intro does not, and it looked wrong.
 - **The eyelids are not in the still.** They are Totoro's own colour, rest just above his eyes, and only show inside the eyes' shape, so at rest nothing of them is seen.
 
 ## Tried in a throwaway player
@@ -43,9 +49,19 @@ Read from the video by `cut.py`: eleven soot sprites each drift on a small path 
 
 GPU time flatters the loop here. Under the loop the GPU's clock averaged 604 MHz and peaked at its 1150 MHz limit; under the scene it never left its 300 MHz floor, so the same work shows as more time.
 
+## The arrive part, checked the same way
+
+All 156 frames of the scene's arrive part against the shipped intro's, then on into idle:
+
+- **The circle** is 1.6 pixels from the intro's width on average, on a circle 616 wide. On its first frame it is 36 off: the scene starts a frame early.
+- **Totoro** is 0.6 pixels from the intro's height on average over a rise of 186, and 11 at worst, around 2 s, where the intro gives him a second small twitch that one swing does not have.
+- **Nine of the eleven sprites appear on the same frame** as in the intro, and two a frame early.
+- **Nothing shifts when idle takes over:** the largest change in any pixel between the last frame of arrive and the first of idle is 4 levels. The player settles the last 0.4 s of arrive into the still itself; before it did, the circle's rim shifted by a fraction of a pixel there.
+
 ## What is rough or missing
 
-- **The arrive part is not written.** The shipped intro grows the circle from a dot, raises Totoro into it and pops the sprites in.
+- **The whiskers fade in.** In the intro they grow outward from his face.
+- **Totoro's second twitch is missing,** as above.
 - **Watts were not measured** for this scene; the laptop was plugged in.
 - **One sprite, the lowest, follows the loop less closely** than the rest. Its path in the loop is not the plain swing the scene gives it.
 - **The eyelids move at a steady speed.** The loop's do not, which shows for one frame at each end of a blink.
