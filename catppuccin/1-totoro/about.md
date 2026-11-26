@@ -8,7 +8,7 @@ The first background tried as a scene: a description and a few small pictures th
 | --- | --- |
 | `scene.jsonc` | The scene: which pieces move and how. Written to be changed by hand |
 | `cut.py` | Cuts the pieces out of the still and reads each sprite's motion from the shipped loop |
-| `pieces/` | What `cut.py` wrote: a shape and a patch for each of the eleven soot sprites, for Totoro and for his whiskers, the bare circle, the eyelids, the shape of the eyes, and `motion.json` with what it measured. 648 KB |
+| `pieces/` | What `cut.py` wrote: a shape and a patch for each of the eleven soot sprites, for Totoro and for his whiskers, the bare circle, the eyelids, the shape of the eyes, and `motion.json` with what it measured. Pieces that take their colour from the still are stored as grey shapes. 203 KB, against 414 KB for the shipped intro and loop together |
 
 The still and the loop are read from where Omarchy installs them, `/usr/share/omarchy/themes/catppuccin/backgrounds/`.
 

@@ -76,7 +76,7 @@ def main():
     shape = (1 - (away - 0.5) / SOFT).clip(0, 1) * mine[box]
     shape = (shape * 255).round() / 255
     seen, under = still[box].astype(np.float32), circle[box]
-    save(out / f"{name}.png", seen, shape)
+    save_shape(out / f"{name}.png", shape)
     # Behind it: the circle, only under the shape, so a neighbour's room is left alone.
     save(out / f"{name}-behind.png", under, shape > 0)
     claimed.append((name, box, shape > 0))
@@ -122,7 +122,7 @@ def main():
   # He stops a little inside the circle's edge, so he carries none of the dark around it.
   shape *= (radius - np.hypot(yy - centre[0], xx - centre[1])[box] - EDGE).clip(0, 1)
   shape = (shape * 255).round() / 255
-  save(out / "totoro.png", still[box].astype(np.float32), shape)
+  save_shape(out / "totoro.png", shape)
   save(out / "totoro-behind.png", circle[box], shape > 0)
   claimed.append(("totoro", box, shape > 0))
   whole["totoro"] = spot(box, width, height)
@@ -134,7 +134,7 @@ def main():
   his = np.zeros(ink.shape, bool)
   his[box] = shape > 0
   wshape[his[wbox]] = 0
-  save(out / "whiskers.png", still[wbox].astype(np.float32), wshape)
+  save_shape(out / "whiskers.png", wshape)
   save(out / "whiskers-behind.png", circle[wbox], wshape > 0)
   whole["whiskers"] = spot(wbox, width, height)
   claimed.append(("whiskers", wbox, wshape > 0))
@@ -174,6 +174,11 @@ def roomy(mask, height, width, room=ROOM):
 def spot(box, width, height):
   """Left, top, width and height of a box as shares of the picture."""
   return [round(float(value), 6) for value in (box[1].start / width, box[0].start / height, (box[1].stop - box[1].start) / width, (box[0].stop - box[0].start) / height)]
+
+
+def save_shape(path, alpha):
+  """A piece that takes its colour from the still is only a shape: a grey picture, white where it is solid."""
+  Image.fromarray((np.asarray(alpha, np.float32) * 255).round().astype(np.uint8), "L").save(path, optimize=True)
 
 
 def save(path, colour, alpha):
