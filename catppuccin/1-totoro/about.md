@@ -25,10 +25,15 @@ Read from the video by `cut.py`: eleven soot sprites each drift on a small path 
 
 ## Tried in a throwaway player
 
-2026-11-26, in `~/owe-scene` (branch `scene-spike`), on an Intel UHD 620 laptop at 1920x1080, on AC:
+2026-11-26, in `~/owe-scene` (branch `scene-spike`), on an Intel UHD 620 laptop at 1920x1080, on AC. The player wrote all 192 frames of the scene's 8 seconds to disk on its own clock, and each was compared with the same frame of the shipped loop.
 
 - **At rest the scene is the still:** 24 pixels of the screen differ, by one level.
-- **Moving, it follows the shipped loop:** at four moments compared, 0.003 to 0.02% of pixels differed strongly, where the loop itself had moved 0.2 to 0.4% of them.
+- **Every sprite follows the loop:** over all frames a sprite is 0.25 pixels from where the loop has it on average, and 1.9 at worst, on paths up to 14.5 pixels long. Ten of the eleven stay within 1.1 pixels; the lowest one is off by 0.9 on average.
+- **It moves as smoothly as the loop:** the largest step between two frames is 0.46 pixels (0.58 in the loop), and from the last frame back to the first 0.21 (0.26).
+- **The blinks land on the same frames:** eyes shut in the same 20 frames of 192. On the frame before and after, the lid is not at the same height as the loop's.
+- **Edges are as sharp:** the steepest edges around the sprites measure 112.8 levels a pixel, 113.3 in the loop.
+- **It holds its rate in real time:** 24.0 frames a second over half a minute.
+- **The screen shows what the player drew:** captured from the compositor on a spare virtual screen, the picture below the bar is the player's own frame, pixel for pixel.
 
 | What played | Renderer CPU | Memory, with GPU buffers | GPU time, renderer and compositor |
 | --- | --- | --- | --- |
@@ -36,10 +41,13 @@ Read from the video by `cut.py`: eleven soot sprites each drift on a small path 
 | The scene at 24 fps | 1.1% | 145 MB | 13.1% |
 | The scene at 12 fps | 0.5% | 143 MB | 6.4% |
 
+GPU time flatters the loop here. Under the loop the GPU's clock averaged 604 MHz and peaked at its 1150 MHz limit; under the scene it never left its 300 MHz floor, so the same work shows as more time.
+
 ## What is rough or missing
 
 - **The arrive part is not written.** The shipped intro grows the circle from a dot, raises Totoro into it and pops the sprites in.
 - **Watts were not measured** for this scene; the laptop was plugged in.
-- **A moved sprite's edge is a little softer** than in the video.
-- **The motion was looked at in still frames only,** at five moments. Nobody has watched it run.
+- **One sprite, the lowest, follows the loop less closely** than the rest. Its path in the loop is not the plain swing the scene gives it.
+- **The eyelids move at a steady speed.** The loop's do not, which shows for one frame at each end of a blink.
+- **Nobody has watched it run.** Everything above is measured from frames.
 - **The player is a spike:** no battery or animations rule, no hand-over from the shell's still, no tests.

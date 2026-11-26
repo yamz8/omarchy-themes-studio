@@ -52,7 +52,7 @@
     "sprite-11": { "y": { "swing": 0.00563, "seconds": 8, "phase": 78.1 }, "x": { "swing": 0.00231, "seconds": 8, "phase": 57.7 } },
     // A blink: the eyelids come down that far for a moment, at these seconds
     // of every 8.
-    "eyelids": { "y": { "pulse": 0.04659, "at": [1.38, 4.0, 4.38, 6.58], "lasts": 0.3, "every": 8 } }
+    "eyelids": { "y": { "pulse": 0.04659, "at": [1.39, 4.01, 4.39, 6.6], "lasts": 0.315, "every": 8 } }
   }
 
   // "arrive" is not written yet: the circle grows from a dot, Totoro rises
