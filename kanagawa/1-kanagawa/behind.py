@@ -6,7 +6,10 @@ grain borrowed from a clean patch of the same ink. A graded part, like the sky, 
 continue, so its colour is carried sideways along each row instead.
 """
 
+import sys
+
 import numpy as np
+from PIL import Image
 from scipy import ndimage as ndi
 
 SMALLER = 4  # colour fields are worked out on a copy this many times smaller
@@ -66,6 +69,19 @@ def paint_behind(still, ink, part, index, reach, graded, unit):
   view[wanted, :3] = painted[wanted].clip(0, 255).round().astype(np.uint8)
   view[wanted, 3] = (alpha[wanted] * 255).round().astype(np.uint8)
   return result
+
+
+def use_painted(layer, hidden, path):
+  """Where the file at `path` is painted and the part is hidden, the painting goes over the recipe's own."""
+  painted = np.asarray(Image.open(path).convert("RGBA")).astype(np.float32)
+  if painted.shape != layer.shape:
+    sys.exit(f"{path} is {painted.shape[1]}x{painted.shape[0]}, not the still's {layer.shape[1]}x{layer.shape[0]}")
+  here = hidden & (painted[..., 3] > 0)
+  over, under = painted[here, 3:] / 255, layer[here, 3:].astype(np.float32) / 255
+  alpha = over + under * (1 - over)
+  colour = (painted[here, :3] * over + layer[here, :3] * under * (1 - over)) / alpha
+  layer[here] = np.concatenate([colour, alpha * 255], 1).round().astype(np.uint8)
+  return int(here.sum())
 
 
 def rounded(labels, wanted, spread):

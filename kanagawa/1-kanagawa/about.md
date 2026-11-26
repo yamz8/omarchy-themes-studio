@@ -12,7 +12,8 @@ The still is Hokusai's *Under the Wave off Kanagawa*, a woodblock print: flat ar
 | `open.py` | The recipe: reads the still and `parts.toml`, writes everything in `out/` |
 | `behind.py` | The part of the recipe that paints in what a part would show where nearer parts cover it |
 | `still.py` | Finds the still on this machine by its name and refuses a picture that is not the one `parts.toml` was drawn on |
-| `tries/` | The same small motion made from code and in Blender, to see what each needs |
+| `painted/` | Paintings of what a part shows where it is hidden, made by hand or by any tool. They win over the recipe's own painting. Kept in git: they cannot be rebuilt |
+| `tries/` | Ways of working tried on the material: a small motion from code and in Blender, and an AI service painting a hidden area |
 | `out/` | The material. Not kept in git; `open.py` rebuilds it in about a minute and a half |
 
 ## What the recipe makes
@@ -34,17 +35,19 @@ Nobody traces an outline. A part's region in `parts.toml` is a loose polygon. Th
 
 Under the parts in front of it, as far as its `reach`, a part is continued the way the print is made: each hidden pixel takes the ink of the nearest place the part shows, that ink's colour as it drifts across the part, and paper grain tiled from a clean patch of the same ink. The sky has no inks to continue (`behind = "graded"`), so its colour is carried sideways along each row, and it is painted across the whole picture.
 
+A file `painted/<part>.png`, the still's size and clear where nothing is painted, wins over all of that: wherever the part is hidden and the file is painted, the painting is used. Where the part shows, the still always wins, so a painting cannot change the picture at rest. It does not matter what made the file.
+
 The recipe ends by reading the parts back and stacking them one over the other. It fails unless they give the still back, pixel for pixel.
 
 ## What is rough or missing
 
-- **Painting in works for thin edges and for the sky, not for large hidden areas.** Take the cloud or the text away and the sky closes over them. Take a boat away and the water under it is a patchwork: the continued inks meet in blobs, not in the wave's own stripes. That needs real painting, by hand or by an AI service.
-- **A wrong cut becomes a wrong fill.** Scraps of a boat left in a wave are continued as boat-coloured patches under the boat.
+- **The recipe's own painting works for thin edges and for the sky, not for large hidden areas.** Take the cloud or the text away and the sky closes over them. Take a boat away and the water under it is a patchwork: the continued inks meet in blobs, not in the wave's own stripes. That needs a painted file. Only the left boat has one so far.
+- **A wrong cut becomes a wrong fill, and a painted file cannot mend it.** Scraps of a boat left in a wave are continued as boat-coloured patches under the boat. They are pixels the wave shows, so they also stay when the boat is taken away, painted file or not: a thin strip of hull is still there under the left boat.
 - **Edges are hard.** Each pixel shows one part. The cloud fades into the sky with no line, so it is cut with a wide edge and carries a rim of sky with it.
 - **Some cuts are wrong.** A few dots of spray and strokes of the wave's outline are left in the sky, the boats carry scraps of sky and water, and the signature is cut as a box.
 - **Where one wave ends is a choice.** The sea is one body of water. Splitting it into great wave, front wave and right swell was a call, and a different motion may want a different one.
 - **The inks are found, not named.** Nine colours by clustering; the boats' yellow did not get one of its own.
-- **Not tried everywhere.** Code and Blender have been tried, below. The `.ora` file has not been opened in Krita or GIMP, and nothing has been handed to an AI service.
+- **Not tried everywhere.** Code, Blender and one AI service have been tried, below. The `.ora` file has not been opened in Krita or GIMP, and no painted file has been made by hand.
 
 ## Tried: the far boat bobs
 
@@ -63,3 +66,14 @@ The same small motion, made twice from the same parts, to see what each way of w
 - Lifted, the boat leaves no gap.
 
 Only two frames were rendered in Blender, at rest and at the top of the bob. The loop has not been played on the desktop or run through the loops repository's check.
+
+## Tried: an AI service paints the water behind the left boat
+
+`tries/paint-ai.py`, on 2026-11-26. `ask` writes a 1680x1260 crop of the still around the left boat and a mask of the boat grown by 14 pixels. The two went to an image service that repaints a masked area (Nano Banana 2 through Higgsfield, at its 2k size, one try), asked to take the boat away and continue the wave. `take` fits what came back and writes `painted/great-wave.png`.
+
+- **The fill is good.** The wave's stripes, foam dots and foam fingers continue under the boat in the print's own style. The recipe's own painting there was blobs of ink with sky showing through.
+- **What comes back is not the still with a hole filled.** It is the whole crop drawn again: 2400x1792, a little stretched, and off from the still by 15 levels on average pixel for pixel, though only 5 in tone. So it is lined up on matching points (823 were found), its tone is matched to the still around the mask, and only the masked area is kept.
+- **Tone matching has to leave out what the service changed.** It also cleaned up scraps of boat outside the mask. Taking those for a difference in tone pulled a purple cast into the water until differences above 12 levels were left out.
+- **The stack check still passes,** because the painting is only used where the great wave is hidden.
+- **Everything painted went to one part.** All that is behind this boat is the great wave. Behind the far boat are the sky and the foot of Fuji, and a painting there would have to be split between them. That has not been tried.
+- **What came back is not kept in git.** It is `out/tries/paint-ai-got-1.png`, 8 MB; `painted/great-wave.png`, made from it, is.

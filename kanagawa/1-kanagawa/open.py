@@ -19,7 +19,7 @@ from scipy import ndimage as ndi
 from scipy.cluster.vq import kmeans2
 from skimage import color
 
-from behind import paint_behind
+from behind import paint_behind, use_painted
 from still import find_still
 
 HERE = Path(__file__).resolve().parent
@@ -145,6 +145,10 @@ def write_parts(out, still, ink, part, spec):
     reach = entry.get("reach", spec["reach"])
     reach = None if reach == "all" else reach * unit
     layer = paint_behind(still, ink, part, index, reach, entry.get("behind") == "graded", unit)
+    # A painting of the part, by hand or by any tool, wins over the recipe wherever the part is hidden.
+    painted = HERE / "painted" / f"{entry['name']}.png"
+    if painted.exists():
+      print(f"{entry['name']}: {use_painted(layer, part > index, painted)} hidden pixels taken from painted/{painted.name}")
     Image.fromarray(layer).save(out / "parts" / f"{index + 1:02d}-{entry['name']}.png", compress_level=3)
 
 
