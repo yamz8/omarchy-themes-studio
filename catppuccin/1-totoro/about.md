@@ -47,6 +47,15 @@ Measured from the video, 156 frames at 30 a second: the circle grows from nothin
 | The scene at 24 fps | 1.1% | 145 MB | 13.1% |
 | The scene at 12 fps | 0.5% | 143 MB | 6.4% |
 
+On battery, read from the battery's own current and voltage over 40 seconds, two rounds in opposite order:
+
+| What played | Watts, first round | Second round | Over the still alone |
+| --- | --- | --- | --- |
+| The still alone | 6.28 | 5.84 | |
+| The shipped loop | 11.37 | 11.21 | about 5.2 |
+| The scene at 24 fps | 7.45 | 7.14 | about 1.2 |
+| The scene at 12 fps | 6.80 | 6.75 | about 0.7 |
+
 GPU time flatters the loop here. Under the loop the GPU's clock averaged 604 MHz and peaked at its 1150 MHz limit; under the scene it never left its 300 MHz floor, so the same work shows as more time.
 
 ## The arrive part, checked the same way
@@ -62,7 +71,6 @@ All 156 frames of the scene's arrive part against the shipped intro's, then on i
 
 - **The whiskers fade in.** In the intro they grow outward from his face.
 - **Totoro's second twitch is missing,** as above.
-- **Watts were not measured** for this scene; the laptop was plugged in.
 - **One sprite, the lowest, follows the loop less closely** than the rest. Its path in the loop is not the plain swing the scene gives it.
 - **The eyelids move at a steady speed.** The loop's do not, which shows for one frame at each end of a blink.
 - **Nobody has watched it run.** Everything above is measured from frames.
