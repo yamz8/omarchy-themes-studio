@@ -1,0 +1,23 @@
+// The scene for rose-pine/1-funky-shapes: the flat shapes of the collage breathe,
+// each in its own time, and the line art drawn on a shape goes with it.
+// Nothing is cut out of the still. One effect of the scene's own reads the
+// shapes out of the still's colours and puts the picture together again.
+{
+  "still": "rose-pine/1-funky-shapes.webp",
+  "sha256": "f8920bfbe3fdff6a42a9c920e87aa4b7d590d4b01862948ffbc4e484339f2b81",
+
+  // The whole picture. An area with no picture of its shape is its rectangle.
+  "areas": [
+    { "name": "picture", "at": [0, 0, 1, 1] }
+  ],
+
+  "effects": [
+    { "name": "breathe", "shader": "effects/breathe.glsl", "values": { "amount": 0.03, "seconds": 14 } }
+  ],
+
+  // Repeats for as long as the desktop may move.
+  "idle": {
+    "frames_a_second": 24,
+    "picture": { "breathe": {} }
+  }
+}
