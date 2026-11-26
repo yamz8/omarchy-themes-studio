@@ -1,44 +1,60 @@
-// The scene for catppuccin/1-totoro: a first draft, written by hand to settle
-// the format. Nothing plays this file yet, and its pictures have not been cut.
+// The scene for catppuccin/1-totoro, written to settle the format. Only a
+// throwaway player in ~/owe-scene reads it so far.
 //
-// This background already ships an intro and a loop as video. The scene is
-// meant to show the same two motions, so the two ways can be compared directly.
+// This background already ships an intro and a loop as video. The idle part
+// below repeats the loop's motion, as cut.py measured it from that video, so
+// the two ways can be compared directly. Change any number by hand.
 {
   "still": "catppuccin/1-totoro.webp",
   "sha256": "4896da620ed3016b7e52eede8db8169591a9fa4856064db4039521be96f724b6",
 
-  // Pieces cut out of the still, back to front. With every piece at home the
-  // scene is the still exactly. "behind" is what the still shows where the
-  // piece was; here that is always the smooth colour of the circle.
-  "pieces": [
-    { "name": "circle", "picture": "circle.webp" },
-    { "name": "totoro", "picture": "totoro.webp", "inside": "circle" },
-    { "name": "sprites-left", "picture": "sprites-left.webp" },
-    { "name": "sprites-top", "picture": "sprites-top.webp" },
-    { "name": "sprites-right", "picture": "sprites-right.webp" },
-    { "name": "sprite-low", "picture": "sprite-low.webp" }
+  // Shapes in the still that a piece can be kept inside. "at" is left, top,
+  // width and height as shares of the still.
+  "areas": [
+    { "name": "eyes", "mask": "pieces/eyes.png", "at": [0.451302, 0.578241, 0.101302, 0.042593] }
   ],
 
-  // Repeats while the desktop may move: the soot sprites float a little, each
-  // group at its own pace. Distances are shares of the picture's height.
-  "idle": {
-    "frames_a_second": 12,
-    "sprites-left": { "y": { "swing": 0.004, "seconds": 7 }, "x": { "swing": 0.002, "seconds": 11 } },
-    "sprites-top": { "y": { "swing": 0.003, "seconds": 9 } },
-    "sprites-right": { "y": { "swing": 0.004, "seconds": 8 }, "x": { "swing": 0.002, "seconds": 13 } },
-    "sprite-low": { "y": { "swing": 0.005, "seconds": 6 } }
-  },
+  // Pieces that move, back to front. A soot sprite's picture is its shape; its
+  // colour is the still's own, less "behind", the circle where it sits. So with
+  // every piece at home the scene is the still exactly, at any size.
+  "pieces": [
+    { "name": "sprite-1", "picture": "pieces/sprite-1.png", "behind": "pieces/sprite-1-behind.png", "at": [0.589063, 0.290741, 0.03151, 0.054167] },
+    { "name": "sprite-2", "picture": "pieces/sprite-2.png", "behind": "pieces/sprite-2-behind.png", "at": [0.374479, 0.325926, 0.029687, 0.050926] },
+    { "name": "sprite-3", "picture": "pieces/sprite-3.png", "behind": "pieces/sprite-3-behind.png", "at": [0.58125, 0.325926, 0.05599, 0.095833] },
+    { "name": "sprite-4", "picture": "pieces/sprite-4.png", "behind": "pieces/sprite-4-behind.png", "at": [0.365625, 0.35, 0.032813, 0.056944] },
+    { "name": "sprite-5", "picture": "pieces/sprite-5.png", "behind": "pieces/sprite-5-behind.png", "at": [0.371615, 0.380093, 0.036458, 0.0625] },
+    { "name": "sprite-6", "picture": "pieces/sprite-6.png", "behind": "pieces/sprite-6-behind.png", "at": [0.386979, 0.407407, 0.040365, 0.068056] },
+    { "name": "sprite-7", "picture": "pieces/sprite-7.png", "behind": "pieces/sprite-7-behind.png", "at": [0.359375, 0.41713, 0.044531, 0.074537] },
+    { "name": "sprite-8", "picture": "pieces/sprite-8.png", "behind": "pieces/sprite-8-behind.png", "at": [0.378906, 0.463426, 0.038802, 0.066204] },
+    { "name": "sprite-9", "picture": "pieces/sprite-9.png", "behind": "pieces/sprite-9-behind.png", "at": [0.582812, 0.488889, 0.029687, 0.050926] },
+    { "name": "sprite-10", "picture": "pieces/sprite-10.png", "behind": "pieces/sprite-10-behind.png", "at": [0.571875, 0.525926, 0.05625, 0.073611] },
+    { "name": "sprite-11", "picture": "pieces/sprite-11.png", "behind": "pieces/sprite-11-behind.png", "at": [0.584375, 0.646759, 0.029427, 0.050926] },
+    // Not in the still: Totoro's own colour, the size of his eyes, resting just
+    // above them and only ever seen inside their shape.
+    { "name": "eyelids", "picture": "pieces/eyelids.png", "at": [0.451302, 0.578241, 0.101302, 0.042593], "inside": "eyes", "rest": { "y": -0.04659 } }
+  ],
 
-  // Plays once when the background appears, and ends at rest: the circle
-  // grows from a dot, Totoro rises into it, then the sprites pop in.
-  "arrive": {
-    "frames_a_second": 30,
-    "seconds": 5,
-    "circle": { "size": { "from": 0.3 }, "for": 1.5 },
-    "totoro": { "y": { "from": 0.25 }, "after": 1, "for": 2 },
-    "sprites-left": { "fade": { "from": 0 }, "size": { "from": 0.5 }, "after": 2.6, "for": 0.5 },
-    "sprites-top": { "fade": { "from": 0 }, "size": { "from": 0.5 }, "after": 2.9, "for": 0.5 },
-    "sprites-right": { "fade": { "from": 0 }, "size": { "from": 0.5 }, "after": 3.2, "for": 0.5 },
-    "sprite-low": { "fade": { "from": 0 }, "size": { "from": 0.5 }, "after": 3.5, "for": 0.5 }
+  // Repeats while the desktop may move. A swing goes that far each way, as a
+  // share of the still's height, once every "seconds"; "phase" (degrees) is
+  // where in the swing it starts, and it always starts from home.
+  "idle": {
+    "frames_a_second": 24,
+    "sprite-1": { "y": { "swing": 0.00561, "seconds": 8, "phase": -134.7 }, "x": { "swing": 0.00208, "seconds": 8, "phase": -38.7 } },
+    "sprite-2": { "y": { "swing": 0.00514, "seconds": 8, "phase": -81.2 }, "x": { "swing": 0.00192, "seconds": 8, "phase": 80.5 } },
+    "sprite-3": { "y": { "swing": 0.00533, "seconds": 8, "phase": -66.5 }, "x": { "swing": 0.00194, "seconds": 8, "phase": 27.9 } },
+    "sprite-4": { "y": { "swing": 0.00469, "seconds": 8, "phase": -115.0 }, "x": { "swing": 0.00168, "seconds": 8, "phase": 46.5 } },
+    "sprite-5": { "y": { "swing": 0.00411, "seconds": 8, "phase": -46.5 }, "x": { "swing": 0.00144, "seconds": 8, "phase": 115.3 } },
+    "sprite-6": { "y": { "swing": 0.00463, "seconds": 8, "phase": 22.1 }, "x": { "swing": 0.00162, "seconds": 8, "phase": -176.0 } },
+    "sprite-7": { "y": { "swing": 0.00578, "seconds": 8, "phase": -46.6 }, "x": { "swing": 0.00212, "seconds": 8, "phase": 115.1 } },
+    "sprite-8": { "y": { "swing": 0.00459, "seconds": 8, "phase": -115.0 }, "x": { "swing": 0.00162, "seconds": 8, "phase": 46.6 } },
+    "sprite-9": { "y": { "swing": 0.00516, "seconds": 8, "phase": -1.7 }, "x": { "swing": 0.0018, "seconds": 8, "phase": -74.8 } },
+    "sprite-10": { "y": { "swing": 0.00409, "seconds": 8, "phase": 67.1 }, "x": { "swing": 0.00143, "seconds": 8, "phase": -5.5 } },
+    "sprite-11": { "y": { "swing": 0.00563, "seconds": 8, "phase": 78.1 }, "x": { "swing": 0.00231, "seconds": 8, "phase": 57.7 } },
+    // A blink: the eyelids come down that far for a moment, at these seconds
+    // of every 8.
+    "eyelids": { "y": { "pulse": 0.04659, "at": [1.38, 4.0, 4.38, 6.58], "lasts": 0.3, "every": 8 } }
   }
+
+  // "arrive" is not written yet: the circle grows from a dot, Totoro rises
+  // into it, then the sprites pop in.
 }
