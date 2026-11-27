@@ -1,0 +1,47 @@
+# What has been done in the studio for a background, in a line or two. bin/themes
+# puts these beside what Omarchy ships. A background with no entry here has not
+# been started.
+
+["catppuccin/1-totoro"]
+state = "scene"
+note = "Cut pieces, standing in for both the loop and the intro. Follows both frame by frame. 210 KB against 414 KB of video, and about a third of the graphics time."
+
+["catppuccin-latte/1-color-fade"]
+state = "scene"
+note = "One shader of its own, no pictures. Follows the loop. 1.8 KB against 4.1 MB, slightly cheaper to run."
+
+["white/1-white"]
+state = "scene"
+note = "One shader of its own, no pictures. Follows the loop. 5.9 KB against 6.3 MB. Cheaper than the video but still heavy."
+
+["hackerman/1-synth-scape"]
+state = "scene"
+note = "A shader and one light map. A re-made motion that tracks the loop closely. 72 KB against 3.7 MB, about a quarter of the graphics time. Not yet watched in motion."
+
+["vantablack/0-dot-hands"]
+state = "scene"
+note = "Two shaders and one picture. A re-made motion. 37 KB against 1.0 MB, about a third of the graphics time. Not yet watched in motion."
+
+["lumon/01-united-in-severance"]
+state = "scene"
+note = "Three shaders, no pictures. A re-made motion. 9 KB against 0.2 MB, about a third of the graphics time. Not yet watched in motion."
+
+["ristretto/0-launch"]
+state = "study"
+note = "Two shaders, no pictures. Follows the loop, but costs more graphics time than the video does. Waits for effects that can read a picture of data."
+
+["rose-pine/1-funky-shapes"]
+state = "study"
+note = "One large shader. Follows the loop, but costs as much as the video. Waits for pieces that can overlap and change size."
+
+["nord/0-black-moon"]
+state = "draft"
+note = "Two of OWE's own effects, stars that twinkle and surf that drifts, with no arrive part. Checked by numbers only; not tuned or watched in motion."
+
+["kanagawa/1-kanagawa"]
+state = "study"
+note = "The first try at opening a still up: the picture cut into its parts and inks by a recipe. No scene."
+
+["flexoki-light/1-orb"]
+state = "study"
+note = "The same picture made two other ways for comparison, as a Blender file and as a vector file. No scene yet."

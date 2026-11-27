@@ -1,0 +1,69 @@
+#!/usr/bin/python
+"""List every Omarchy theme and background beside what the studio has for it.
+
+Usage: bin/themes [themes directory]
+
+Reads what Omarchy ships (stills, intros and loops under /usr/share/omarchy/themes) and
+notes.toml, and writes a README.md into each theme's folder and the table in the top README.md
+between its two markers. Run it again whenever Omarchy's backgrounds or notes.toml change.
+"""
+
+import sys
+import tomllib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+THEMES = Path(sys.argv[1] if len(sys.argv) > 1 else "/usr/share/omarchy/themes")
+STILLS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+STATES = {"scene": "Scene", "study": "Study", "draft": "Draft"}
+START, END = "<!-- themes: written by bin/themes -->", "<!-- /themes -->"
+
+
+def main():
+  notes = tomllib.loads((ROOT / "notes.toml").read_text())
+  rows = []
+  for theme in sorted(p for p in THEMES.iterdir() if (p / "backgrounds").is_dir()):
+    backgrounds = [background(theme, still, notes) for still in sorted((theme / "backgrounds").iterdir()) if still.suffix.lower() in STILLS]
+    (ROOT / theme.name).mkdir(exist_ok=True)
+    (ROOT / theme.name / "README.md").write_text(theme_page(theme.name, backgrounds))
+    started = [b for b in backgrounds if b["state"]]
+    rows.append(f"| [{theme.name}]({theme.name}/README.md) | {len(backgrounds)} | {count(backgrounds, 'intro')} | {count(backgrounds, 'loop')} | "
+                + (", ".join(f"[{b['stem']}]({theme.name}/{b['stem']}/): {STATES[b['state']].lower()}" for b in started) or "") + " |")
+  table = "\n".join(["| Theme | Backgrounds | Intros | Loops | In the studio |", "|---|---|---|---|---|", *rows])
+  readme = ROOT / "README.md"
+  text = readme.read_text()
+  if START not in text or END not in text:
+    sys.exit(f"README.md needs the two markers:\n{START}\n{END}")
+  readme.write_text(text[:text.index(START) + len(START)] + "\n" + table + "\n" + text[text.index(END):])
+  print(f"{len(rows)} themes, {sum(int(r.split('|')[2]) for r in rows)} backgrounds")
+
+
+def background(theme, still, notes):
+  stem = still.stem
+  intro = next((p for p in sorted((theme / "backgrounds" / "intros").glob(f"{stem}.*"))), None) if (theme / "backgrounds" / "intros").is_dir() else None
+  loop = theme / "backgrounds" / "loops" / f"{stem}.mp4"
+  note = notes.get(f"{theme.name}/{stem}", {})
+  return {"stem": stem, "file": still.name, "size": still.stat().st_size, "intro": intro.stat().st_size if intro else 0,
+          "loop": loop.stat().st_size if loop.is_file() else 0, "state": note.get("state", ""), "note": note.get("note", "")}
+
+
+def count(backgrounds, kind):
+  return sum(1 for b in backgrounds if b[kind]) or ""
+
+
+def size(count):
+  return "" if not count else f"{count / 1e6:.1f} MB" if count >= 1e6 else f"{round(count / 1e3)} KB"
+
+
+def theme_page(name, backgrounds):
+  lines = [f"# {name}", "",
+           f"The backgrounds Omarchy ships for this theme, and what the studio has for each. The stills, intros and loops are not kept here: they come from the `omarchy-themes-backgrounds`, `omarchy-themes-intros` and `omarchy-themes-loops` packages, under `/usr/share/omarchy/themes/{name}/backgrounds/`. This page is written by `bin/themes`; what it says about the studio comes from `notes.toml`.", "",
+           "| Background | Still | Intro | Loop | In the studio |", "|---|---|---|---|---|"]
+  for b in backgrounds:
+    here = f"[{STATES[b['state']]}]({b['stem']}/). {b['note']}" if b["state"] else "Not started."
+    lines.append(f"| `{b['file']}` | {size(b['size'])} | {size(b['intro'])} | {size(b['loop'])} | {here} |")
+  return "\n".join(lines) + "\n"
+
+
+if __name__ == "__main__":
+  main()
