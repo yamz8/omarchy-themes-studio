@@ -49,22 +49,44 @@ Places are shares of the picture, 0 to 1: `"at": [left, top, width, height]`. Di
 
 ```jsonc
 "areas": [ { "name": "sky", "mask": "pieces/sky.png", "at": [0, 0, 1, 0.6] } ],
-"idle": { "frames_a_second": 12, "sky": { "twinkle": { "amount": 0.7, "size": 0.003, "seconds": 7 } } }
+"idle": { "frames_a_second": 12, "sky": { "twinkle": { "amount": 0.5, "size": 0.003, "seconds": 8 } } }
 ```
 
-An area with no `mask` is its whole rectangle. A mask is a grey picture of the area's shape, white where the effect works in full and black where the still is left alone; make it from the still itself, small and soft:
+What each value does. Distances are shares of the still's height, so 0.003 is about 3 pixels on a 1080-high screen. `seconds` is one cycle of the effect.
+
+| Effect | Value | What it does | Calm | Strong |
+|---|---|---|---|---|
+| `twinkle` | `amount` | How far a point's brightness swings, as a share of how much it stands out from what is round it. Near 1 a star can fade out completely. | 0.3 to 0.5 | 0.8 to 1 |
+| | `size` | The widest point of light that twinkles. Anything brighter than its surroundings and narrower than this is taken for a point; larger stars with halos are left alone. | 0.002 to 0.004 | up to 0.006 |
+| | `seconds` | | 7 to 10 | 4 to 6 |
+| `glow` | `amount` | How much brighter and dimmer the whole area gets, as a share of its brightness. | 0.05 to 0.1 | 0.2 to 0.3 |
+| | `flicker` | 0 breathes slowly and evenly; 1 is restless like a flame. | 0 | 0.5 to 1 |
+| | `seconds` | | 5 to 8 | 3 to 5 |
+| `drift` | `amount` | Two numbers: how far the picture is pushed across and down by slow swells. | `[0.003, 0.001]` | `[0.01, 0.004]` |
+| | `size` | How wide one swell is. Small makes a ripple, large a slow heave. | 0.05 to 0.15 | |
+| | `seconds` | | 9 to 16 | 5 to 8 |
+| `flow` | `amount` | Two numbers: how far the picture travels across and down in one cycle. It is two copies taking turns, so on fine detail keep it small or the copies show. | `[0.01, 0]` | `[0.04, 0]` |
+| | `seconds` | | 10 to 16 | 5 to 8 |
+
+The twinkle and drift ranges come from scenes that use them; glow and flow have not been used in a finished scene yet, so treat theirs as a place to start. Left out, a value takes OWE's own: twinkle 0.6 and 0.004 over 6 s, glow 0.12 and 0 over 5 s, drift `[0.004, 0.002]` and 0.08 over 12 s, flow `[0.02, 0]` over 10 s. `drift` and `flow` move less where the area's mask is darker, so a mask that fades towards what should hold still (a shore, a horizon) keeps edges from tearing.
+
+An area with no `mask` is its whole rectangle. A mask is a grey picture of the area's shape, white where the effect works in full and black where the still is left alone. Make it from the still itself, small and soft, and look at it after making it.
+
+**`twinkle` finds thin bright edges as well as points.** The lit rim of a cloud, a ridge line, snow on a mountain or a thin streak is brighter than what is beside it too, so with no mask it sparkles along with the stars. A mask made by brightness cannot help: stars and rims are both bright. Make the mask from structure instead, which leaves open sky white and blacks out wherever there is an edge:
 
 ```python
 from PIL import Image, ImageFilter
-left, top, wide, tall = 0.0, 0.0, 1.0, 0.6           # the area's "at"
+left, top, wide, tall = 0.0, 0.0, 1.0, 1.0           # the area's "at"
 still = Image.open(STILL).convert("L")
 w, h = still.size
 box = still.crop((round(left * w), round(top * h), round((left + wide) * w), round((top + tall) * h)))
 box = box.resize((1024, round(1024 * box.height / box.width)))   # a shape is soft and needs few pixels
-box.point(lambda v: 255 if v > 77 else 0).filter(ImageFilter.GaussianBlur(4)).save("pieces/sky.png")
+plain = box.filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5))    # the points of light are gone; what has edges is left
+rims = plain.filter(ImageFilter.FIND_EDGES).filter(ImageFilter.GaussianBlur(4))  # how strong an edge is nearby
+rims.point(lambda v: 0 if v > 4 else 255).filter(ImageFilter.GaussianBlur(3)).save("pieces/sky.png")
 ```
 
-Look at the mask after making it. A threshold on brightness rarely separates what you meant on the first try.
+On a nebula with cloud ridges this kept almost nine in ten of the stars twinkling and took the sparkle off nineteen in twenty rim pixels. The `4` is the line between sky and rim: lower it to black out more, raise it to keep more sky. For other effects a mask is usually a region (the water, the sky above a skyline); cut it the same way and replace the last three lines with whatever separates that region, then look at it.
 
 **A shader of the scene's own.** Declare it under `effects`, give it an area, and write one function. `examples/color-fade/effects/waves.glsl` is the model: it shifts where the still is read by a wave, measured against where the wave stands at the start of the cycle, so the cycle begins and ends on the still.
 
@@ -84,12 +106,16 @@ It is given `still(uv)`, `mask(uv)`, `phase` (0 to 1 over the effect's `seconds`
 
 ```bash
 owe scene info scene.jsonc                              # does OWE accept it, and why not
-owe scene frame scene.jsonc --at 3 --out moment.png     # one moment, 3 seconds into the idle part
-"$SKILL/tools/scene-sheet" scene.jsonc --out sheet.png  # eight moments through one cycle, in one picture
+owe scene frame scene.jsonc --at 3 --out moment.png     # one moment, 3 seconds into the idle part, 1920x1080 unless --size WxH
+"$SKILL/tools/scene-sheet" scene.jsonc --out sheet.png --zoom zoom.png
 "$SKILL/tools/scene-sheet" scene.jsonc --part arrive --out arrive.png
 ```
 
-Open the pictures and look at them yourself. `owe scene frame` uses the code that draws a playing scene, so what it writes is what plays. If OWE cannot find the still from where the scene is, add `--still /path/to/still` to each command. `--video preview.mp4` on `scene-sheet` writes a short video of one cycle, and `--beside reference.mp4` puts a video to follow on its left.
+Open the pictures and look at them yourself. `owe scene frame` uses the code that draws a playing scene, so what it writes is what plays. If OWE cannot find the still from where the scene is, add `--still /path/to/still` to each command (`scene-start` says when).
+
+- `sheet.png` is eight moments evenly through one cycle. It shows large motion: a piece moving, a band rising, a light passing.
+- **Motion a few pixels wide cannot be seen on the sheet, or on a whole frame.** Stars, sparkles, thin lines and small dots look identical in every moment. `zoom.png` is for that: on top, the whole still with everything that changes marked in red, the marks drawn large; below, the three busiest places at twice full size, each at rest, when most changed, and with its changes marked. Read it and ask of every red mark: is this on something I meant to move? Scattered marks on stars are a twinkle. A row of marks along an edge, a rim or a horizon is the effect catching the edge, and needs a mask (step 3). `--places "0.3,0.6 0.7,0.2"` enlarges places you name, as shares of the picture across and down.
+- A video cannot be watched from here. `--video preview.mp4` writes one for the user, and `--beside reference.mp4` puts a video to follow on its left. To judge calm without watching, read the `pace` line of the check below.
 
 ## 5. Check it
 
@@ -97,7 +123,9 @@ Open the pictures and look at them yourself. `owe scene frame` uses the code tha
 "$SKILL/tools/scene-check" scene.jsonc --map where.png
 ```
 
-It must pass before anyone is shown the scene. It checks that at rest the scene is its still, that something visibly changes and where, that each thing the idle part lists changes something in its own place and nothing changes elsewhere, and that nothing jumps where a cycle ends and starts again. `where.png` shows what changes in red; make sure that is what you meant to move and nothing else. The check cannot say whether the motion looks good. That is what step 4 is for.
+It must pass before anyone is shown the scene, and takes about a minute. It checks that at rest the scene is its still, that something visibly changes and where, that each thing the idle part lists changes something in its own place and nothing changes elsewhere, and that nothing jumps where a cycle ends and starts again. Its `pace` line says how far a pixel steps from one frame to the next: small steps are calm, and one that jumps a large part of its range between two frames may flicker. It warns when two effects share an area.
+
+**Passing is not the same as right.** The check cannot tell a star from a bright edge, or say whether the motion looks good; a scene that sparkles in the wrong places passes every line. `where.png` and step 4's `zoom.png` are where that shows. Do not go on until you have read them.
 
 ## 6. Estimate what it costs
 
@@ -105,11 +133,17 @@ It must pass before anyone is shown the scene. It checks that at rest the scene 
 "$SKILL/tools/scene-cost" scene.jsonc --wide 2560       # the user's screen in pixels across
 ```
 
-A scene only earns its place if it is cheaper to draw than a video. This times OWE drawing frames to files against drawing the still alone. It is rough, and cannot see less than about 10 ms a frame, but it catches a shader that is far too heavy. If it says heavy, fix that before going on: lower `frames_a_second` (12 is enough for slow motion), make the area smaller, or find what the shader works out again for every pixel. The measurement that counts is the scene playing on the desktop.
+A scene only earns its place if it is cheaper to draw than a video. This times OWE drawing frames to files against drawing the still alone, several times over. It is rough: it cannot see less than about 10 ms a frame, and on a busy machine its tries can disagree by more than that.
+
+- `--wide` is the screen's width in pixels: `hyprctl monitors -j | jq -r '.[] | "\(.width)x\(.height) scale \(.scale)"'`. With a scale that is not a whole number OWE may draw larger (1920 wide at scale 1.6 was drawn 2400 wide on one laptop), so when unsure test the next size up too.
+- It gives a verdict only when its tries agree. **"No verdict" means run it again**, with more `--tries` or when the machine is quieter. Do not change the scene because of one noisy run.
+- "Heavy" as a verdict is real: lower `frames_a_second` (12 is enough for slow motion such as twinkling and drifting; 24 is for something quick), make the area smaller, or find what the shader works out again for every pixel.
+
+The measurement that counts is the scene playing on the desktop.
 
 ## 7. Show the user, and put it where it plays
 
-Show the sheet picture and say plainly what moves, what you could not do, and what the cost estimate said. To play it, the scene's folder goes beside the still the desktop is showing, named after the still, and OWE is told to look again:
+Show the sheet and the zoom picture and say plainly what moves, what you could not do, and what the cost estimate said. To play it, the scene's folder goes beside the still the desktop is showing, named after the still, and OWE is told to look again:
 
 ```bash
 home=~/.local/state/omarchy/current/theme/backgrounds/scenes
@@ -124,7 +158,8 @@ It plays while animations are on and the machine is on AC power. That folder is 
 - **A shader must compile as both GLSL 1.50 and GLSL ES 3.00.** Write every number with a decimal point (`2.0`, not `2`), give loops fixed bounds, and avoid names the language reserves in either version: `patch`, `sample`, `filter`, `input`, `output`, `common`, `partition` and `active` are reserved in GLSL ES and easy to reach for. A scene's values cannot be named `phase`, `seconds`, `pixel`, `aspect`, `area`, `strength`, `still`, `mask`, `grain`, `cloud` or `effect`. A shader that does not compile refuses the whole scene; `owe scene frame` prints the compiler's line.
 - **A cycle must come round.** Use `phase` only inside something that repeats, such as `sin` or `cos` of a whole number of turns, or measure against where things stood at the start of the cycle as the example does. `still(uv + phase * something)` slides and then jumps back; `scene-check` reports that as a failed seam.
 - **An effect fades in.** OWE brings every effect up from the still over the first 0.4 seconds of the idle part. A moment drawn at `--at 0` is always the still; look at `--at 1` or later to see the effect.
-- **Effects on areas that overlap do not add up.** Each effect reads the still, not what an earlier effect drew. Where two shapes are both white, the later one wins. Give two effects places that do not overlap, or shapes that do not.
+- **`twinkle` catches bright edges**, not only stars: cloud rims, ridge lines, snow, thin streaks. See the mask in step 3, and read `zoom.png` before believing it is only the stars.
+- **Effects do not add up.** Each effect reads the still, not what an earlier effect drew. Two effects listed on one area: only the last shows, and the check passes anyway (it prints a warning). Two areas that overlap: where both shapes are white, the later one wins. Give each effect its own area with a shape that does not overlap the others, or write one shader that does both things.
 - **A shader is run for every pixel of its area, every frame.** A long formula, a table looked up in a loop, or many reads of the still (more than about ten) can cost more than playing a video. A scene made this way for striped artwork cost more than its video; one for seven overlapping shapes cost as much. If the estimate says heavy, the scene is not done.
 - **Reading the still between pixels softens hard edges.** A shader that shifts sharp line art by a fraction of a pixel blurs it slightly. Fine for soft pictures; for hard edges keep shifts small or expect softness.
 - **Comparing with a video.** When a scene is made to follow an existing video, decode the video with `ffmpeg -vf scale=flags=accurate_rnd+full_chroma_int,format=rgb24`. The default conversion comes out about a level dark and looks like a difference that is not there.

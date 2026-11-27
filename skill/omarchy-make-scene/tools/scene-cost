@@ -1,14 +1,19 @@
 #!/usr/bin/python
 """Estimate what a scene costs to draw, by timing OWE drawing it to files against drawing the still alone.
 
-Usage: scene-cost <scene.jsonc> [--wide 2560] [--tries 3] [--still PATH]
+Usage: scene-cost <scene.jsonc> [--wide 2560] [--tries 5] [--still PATH]
 
 Draws a few frames of the idle part at a screen's size and a few of a scene with nothing in it,
-and reports the extra time a frame takes. This is an estimate made off the screen: it also times
-reading the frame back and writing it to a file, and other programs using the graphics chip skew
-it. What a scene really costs is measured with it playing on the desktop. Use this to catch a
-scene that is far too heavy before it gets that far, and --wide to match the user's screen in
-pixels (2560 is a 1440p screen; 3840 is 4K).
+several times over, and reports the extra time a frame takes and how far the tries disagree.
+This is an estimate made off the screen: it also times reading the frame back and writing it to
+a file, and anything else using the machine skews it. It gives a verdict only when the tries
+agree on one; when they do not, it says so, and the answer is to run it again with more tries
+or on a quieter machine, not to change the scene. What a scene really costs is measured with it
+playing on the desktop.
+
+--wide is the screen's width in pixels. `hyprctl monitors -j | jq -r '.[] | "\\(.width)x\\(.height) scale \\(.scale)"'`
+prints it; on a screen with a scale that is not a whole number OWE may draw larger than that
+(1920 wide at scale 1.6 was drawn 2400 wide on one laptop), so when unsure test the next size up.
 """
 
 import statistics
@@ -42,16 +47,23 @@ def main():
       plain.append((draw(bare / "scene.jsonc", MORE) - draw(bare / "scene.jsonc", FEW)) / (MORE - FEW) * 1000)
       full.append((draw(path, MORE) - draw(path, FEW)) / (MORE - FEW) * 1000)
   own = sorted(f - p for f, p in zip(full, plain))
-  extra, low, high = max(0.0, statistics.median(own)), own[0], own[-1]
+  # The middle half of the tries: one stray try at either end does not decide anything.
+  low, high = (own[len(own) // 4], own[-1 - len(own) // 4]) if len(own) >= 4 else (own[0], own[-1])
+  extra = max(0.0, statistics.median(own))
   budget = 1000 / rate
   print(f"at {size[0]}x{size[1]}, {rate} frames a second:")
   print(f"  the still alone   {statistics.median(plain):6.1f} ms a frame (drawing, reading back and writing the file)")
   print(f"  the scene         {statistics.median(full):6.1f} ms a frame")
-  print(f"  the scene's own   {extra:6.1f} ms a frame ({low:.0f} to {high:.0f} over {opt['tries']} tries), {extra / budget:.0%} of the {budget:.0f} ms between frames")
-  if extra / budget > 0.5:
-    print("  Heavy: more than half of every frame's time goes to the scene, and a video is likely cheaper. Find what the shader works out again for every pixel.")
-  elif extra / budget > 0.25:
-    print("  On the heavy side. Measure it playing before relying on it, and try fewer frames a second.")
+  print(f"  the scene's own   {extra:6.1f} ms a frame, {extra / budget:.0%} of the {budget:.0f} ms between frames")
+  print(f"  over {len(own)} tries      {own[0]:.0f} to {own[-1]:.0f} ms; the middle half of them {low:.0f} to {high:.0f} ms")
+  side = lambda ms: 2 if ms / budget > 0.5 else 1 if ms / budget > 0.25 else 0
+  if side(low) != side(high):
+    print(f"  No verdict: the tries disagree by more than what is being measured ({low:.0f} to {high:.0f} ms against lines at {0.25 * budget:.0f} and {0.5 * budget:.0f} ms).")
+    print(f"  Do not change the scene on this. Run it again with --tries {max(9, 2 * len(own) - 1)}, or when the machine is doing less.")
+  elif side(low) == 2:
+    print("  Heavy: more than half of every frame's time goes to the scene, try after try, and a video is likely cheaper. Find what the shader works out again for every pixel.")
+  elif side(low) == 1:
+    print("  On the heavy side, try after try. Measure it playing before relying on it, and try fewer frames a second.")
   else:
     print("  Light, as far as this can tell: it cannot see less than about 10 ms a frame.")
   print("  An estimate only. The measurement that counts is the scene playing on the desktop.")

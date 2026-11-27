@@ -9,6 +9,8 @@ is never copied, converted or renamed: the scene names it and holds its SHA-256.
 """
 
 import hashlib
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -43,8 +45,9 @@ TEMPLATE = """// The scene for {name}. With nothing moving it is that picture ex
 
   // Repeats for as long as the desktop may move. Everything in it passes through rest.
   "idle": {{
-    "frames_a_second": 24
-    // , "sky": {{ "twinkle": {{ "amount": 0.6, "seconds": 7 }} }}
+    // 12 is enough for slow motion such as twinkling or drifting; use 24 only for something quick.
+    "frames_a_second": 12
+    // , "sky": {{ "twinkle": {{ "amount": 0.5, "size": 0.003, "seconds": 8 }} }}
     // , "bird": {{ "y": {{ "swing": 0.004, "seconds": 8 }} }}
   }}
 
@@ -83,7 +86,12 @@ def main():
   print(f"still   {still}")
   print(f"        named {name} in the scene, SHA-256 {sha}")
   print(f"scene   {target}")
-  print(f"look    owe scene frame {target} --still {still} --at 2 --out moment.png")
+  # OWE finds a packaged still, or one two folders above the scene, by itself; any other has to be named.
+  found = subprocess.run(["owe", "scene", "info", str(target)], capture_output=True, text=True).stdout if shutil.which("owe") else ""
+  named = "" if '"still_matches":true' in found else f" --still {still}"
+  print(f"look    owe scene frame {target}{named} --at 2 --out moment.png")
+  if named:
+    print("        (OWE cannot find this still from where the scene is, so every owe and tool command needs that --still.)")
   print("To play it, the scene's folder goes beside the still the desktop is showing:")
   print(f"        {STATE}/theme/backgrounds/scenes/{still.stem}/")
   if theme:

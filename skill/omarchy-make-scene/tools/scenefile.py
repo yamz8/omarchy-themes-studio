@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 # How long one cycle of each of OWE's own effects is unless the scene says otherwise.
 BUILTIN_SECONDS = {"twinkle": 6, "glow": 5, "drift": 12, "flow": 10}
@@ -206,3 +206,41 @@ def where(mask):
 
 def box_text(box):
   return "nowhere" if box is None else f"left {box[0]:.3f}, top {box[1]:.3f}, {box[2]:.3f} wide, {box[3]:.3f} tall (shares of the picture)"
+
+
+def moments(span, count, part="idle"):
+  """`count` moments evenly spaced through one cycle of `span` seconds, the first at its start.
+
+  In the idle part the first is rest, and OWE brings effects up over the first 0.4 seconds; when
+  the spacing is shorter than that, the later moments are taken one cycle on, where they look the same."""
+  if part == "arrive":
+    return [span * k / (count - 1) for k in range(count)]
+  step = span / count
+  later = span if step < 0.5 else 0.0
+  return [0.0] + [later + step * k for k in range(1, count)]
+
+
+def marked(still, changed, radius=0, boxes=()):
+  """The still dimmed, with what changed in red. `radius` grows each mark so a change one pixel wide
+  can still be seen when the picture is looked at small; `boxes` are numbered places drawn on top."""
+  from PIL import ImageDraw, ImageFont
+  base = (np.asarray(still, float) * 0.45 + 70).clip(0, 255).astype("uint8")
+  marks = Image.fromarray((changed * 255).astype("uint8"))
+  if radius > 0:
+    marks = marks.filter(ImageFilter.MaxFilter(2 * radius + 1))
+  base[np.asarray(marks) > 0] = (255, 40, 40)
+  picture = Image.fromarray(base)
+  if boxes:
+    draw, font = ImageDraw.Draw(picture), ImageFont.load_default(size=max(16, picture.width // 60))
+    for k, (x, y, w, h) in enumerate(boxes):
+      draw.rectangle((x, y, x + w - 1, y + h - 1), outline=(255, 255, 0), width=max(2, picture.width // 640))
+      draw.text((x + 6, y + 4), str(k + 1), fill=(255, 255, 0), font=font)
+  return picture
+
+
+def fine(changed):
+  """The share of what changed that is only a pixel or two wide: marks that vanish when each is shrunk by one pixel all round."""
+  if not changed.any():
+    return 0.0
+  kept = np.asarray(Image.fromarray((changed * 255).astype("uint8")).filter(ImageFilter.MinFilter(3))) > 0
+  return 1.0 - kept.sum() / changed.sum()

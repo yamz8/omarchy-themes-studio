@@ -1,5 +1,5 @@
 
-This is OWE's own description of the scene format (`docs/scenes.md` in OWE), kept beside the skill so it is at hand while working. If the two ever differ, OWE's is right.
+This is OWE's own description of the scene format (`docs/scenes.md` in OWE), kept beside the skill so it is at hand while working, with the table of OWE's effects filled in with what each value does. If the two ever differ on the format, OWE's is right.
 # Scenes
 
 A scene moves a still without a video. It is a small file that names pieces cut from the still and areas of it, and says how they move. OWE draws the still and draws the moving parts over it, so nothing is decoded and what ships is the description, not the frames.
@@ -89,12 +89,14 @@ An effect is a small shader that redraws an area of the still. A part puts an ef
 
 OWE has four:
 
-| Effect | For | Values |
+| Effect | For | Values, and what they are unless the scene says otherwise |
 |---|---|---|
-| `twinkle` | Stars, city lights, sparkles. Finds the points of light itself. | `amount`, `size` |
-| `glow` | Lamps, windows, a sun, embers. | `amount`, `flicker` |
-| `drift` | Water, mist, clouds, foliage pushed back and forth. | `amount` (across, down), `size` |
-| `flow` | A river, smoke, clouds travelling one way. | `amount` (across, down) |
+| `twinkle` | Stars, city lights, sparkles. Finds the points of light itself, and thin bright edges with them, so mask it off cloud rims and ridge lines. | `amount` 0.6: how far a point's brightness swings, as a share of how much it stands out. `size` 0.004: the widest point that twinkles, as a share of the still's height. 6 seconds. |
+| `glow` | Lamps, windows, a sun, embers. | `amount` 0.12: how much brighter and dimmer, as a share. `flicker` 0: 0 breathes evenly, 1 is restless like a flame. 5 seconds. |
+| `drift` | Water, mist, clouds, foliage pushed back and forth. | `amount` [0.004, 0.002]: how far across and down, as shares of the still's height. `size` 0.08: how wide one swell is. 12 seconds. Moves less where the mask is darker. |
+| `flow` | A river, smoke, clouds travelling one way. | `amount` [0.02, 0]: how far it travels across and down in one cycle, as shares of the still's height. 10 seconds. Moves less where the mask is darker. |
+
+The skill's step 3 gives a calm and a strong setting for each.
 
 `seconds` is the length of the effect's cycle, and `strength` takes a `from` motion to bring an effect up during the arrive part.
 

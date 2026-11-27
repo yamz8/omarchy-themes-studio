@@ -7,10 +7,13 @@ Usage: scene-check <scene.jsonc> [--wide 960] [--map where.png] [--still PATH]
   moves     something visibly changes through the idle part, and where
   places    each piece and effect the idle part lists changes something, and nothing changes elsewhere
   seam      nothing jumps where a cycle ends and starts again
+  pace      how far a pixel steps from one frame to the next, which is what flicker is made of
   arrive    how far the arrive part still is from the still when its last moments take over
 
-Exits 1 if a check fails. --map writes a picture of the still with what changes marked in red.
-It says nothing about whether the motion looks good: look at scene-sheet's picture for that.
+Exits 1 if a check fails. --map writes a picture of the still with what changes marked in red,
+the marks drawn large enough to see. It says nothing about whether the motion looks good, and
+it cannot tell a star from a bright edge: look at scene-sheet's pictures, with --zoom for
+anything small, for that. It takes about a minute.
 """
 
 import sys
@@ -46,6 +49,7 @@ def main():
   else:
     most = idle(path, scene, still, size, drawn_still, span, rate, opt["map"])
     seam(path, scene, still, size, rate, most)
+    pace(path, scene, still, size, span, rate, most)
 
   if told["arrive"]:
     seconds = told["arrive"]["seconds"]
@@ -95,6 +99,11 @@ def idle(path, scene, still, size, drawn_still, span, rate, map_path):
     allowed[rows, cols] = True
     if (most[rows, cols] > 2).sum() == 0:
       quiet.append(name)
+  # Two effects on one area do not add up: each reads the still, so the later one replaces the earlier.
+  for name, what in idle_part.items():
+    if name in areas and isinstance(what, dict) and len(what) > 1:
+      print(f"warning the idle part lists {len(what)} effects on \"{name}\" ({', '.join(what)}). They do not add up: each redraws the area from the still, "
+            f"so only the last, {list(what)[-1]}, shows where the area's shape is white. Give each its own area, or write one shader that does both.")
   outside = changed & ~allowed
   everywhere = allowed.all()
   text = "everything the idle part lists changes something" if not quiet else f"nothing changes where the idle part lists {', '.join(quiet)}: a motion of zero, an effect with nothing to work on, or a shape that is empty there"
@@ -103,10 +112,11 @@ def idle(path, scene, still, size, drawn_still, span, rate, map_path):
   report(not quiet and outside.mean() <= 0.0001, "places", text)
 
   if map_path:
-    base = (drawn_still.astype(float) * 0.5 + 64).clip(0, 255)
-    base[changed] = (255, 40, 40)
-    Image.fromarray(base.astype("uint8")).save(map_path)
-    print(f"        what changes by more than {SEEN} levels is red in {map_path}")
+    scenefile.marked(drawn_still.astype("uint8"), changed, radius=max(1, w // 480)).save(map_path)
+    print(f"        what changes by more than {SEEN} levels is red in {map_path}, the marks drawn large. Is every mark on something you meant to move?")
+    if scenefile.fine(changed) > 0.5:
+      print("        Most of what moves here is only a pixel or two wide. This map is drawn at a reduced size, where such things change less than")
+      print("        on a screen: run scene-sheet with --zoom and read that picture before trusting this one.")
   return most
 
 
@@ -145,6 +155,30 @@ def seam(path, scene, still, size, rate, most):
   ok = ratio <= 3 or across < 1
   report(ok, "seam", f"where the {length:g}s cycle comes round (at {turn:g}s) the picture steps {across:.2f} levels over what moves; the steps before and after are {before:.2f} and {after:.2f}"
          + ("" if ok else ". The picture jumps there: whatever repeats must come round to where it started, so use `phase` only inside functions that repeat, such as sin of a whole number of turns."))
+
+
+def pace(path, scene, still, size, span, rate, most):
+  """How far pixels step between one frame and the next at the scene's own rate. Not a pass or fail: a number to read."""
+  moving = most > 2
+  if not moving.any():
+    return
+  count = int(min(round(min(span, 4.0) * rate), 96))
+  last, largest, usual = None, 0, []
+  for _, _, frame in scenefile.run(path, "idle", 0.5, count, rate, size, still=still):
+    if last is not None:
+      step = scenefile.levels(frame, last)[moving]
+      largest = max(largest, int(step.max()))
+      usual.append(float(np.percentile(step, 99)))
+    last = frame
+  print(f"pace    from one frame to the next, at {rate} a second, no pixel steps more than {largest} levels, and 99 in 100 of what moves steps {max(usual):.1f} or less. "
+        + ("The hard edge of a moving piece steps that far as it passes, which is motion; an effect that stays in place stepping that far would flicker." if largest > 60 and moves_pieces(scene)
+           else "A pixel jumping that far between two frames may read as flicker: look at it, and slow it down or lower its amount if so." if largest > 60
+           else "Small steps between frames are what calm motion is made of."))
+
+
+def moves_pieces(scene):
+  pieces = {p["name"] for p in scene.get("pieces", [])}
+  return any(name in pieces for name in scene.get("idle", {}))
 
 
 if __name__ == "__main__":

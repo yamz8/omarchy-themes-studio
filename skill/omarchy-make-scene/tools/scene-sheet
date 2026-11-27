@@ -2,12 +2,21 @@
 """Draw several moments of a scene into one picture to look at, and optionally a preview video.
 
 Usage: scene-sheet <scene.jsonc> [--part idle|arrive] [--moments 8] [--seconds S] [--wide 480]
-                   [--out sheet.png] [--video preview.mp4] [--beside reference.mp4] [--still PATH]
+                   [--out sheet.png] [--zoom zoom.png] [--places "X,Y X,Y"] [--zoom-wide 1920]
+                   [--video preview.mp4] [--beside reference.mp4] [--still PATH]
 
-The sheet spreads the moments over one cycle of the part: the longest time anything in the idle
-part repeats after, or the arrive part's length. --seconds sets another span. --video draws
-every frame of that span at the part's own rate; --beside puts a reference video to its left,
-for a scene made to follow one. Look at the sheet yourself before showing anyone the scene.
+The sheet spreads the moments evenly over one cycle of the part: the longest time anything in
+the idle part repeats after, or the arrive part's length. --seconds sets another span.
+
+A sheet shows large motion. Motion a few pixels wide (stars, sparkles, thin lines, small dots)
+cannot be seen on it at all. --zoom writes a second picture for that: the whole still with
+everything that changes marked in red, large enough to see, and under it the busiest places at
+full size, each as it rests, as it is when most changed, and with its changes marked. --places
+names the places to enlarge yourself, as shares of the picture across and down ("0.3,0.6 0.7,0.2").
+Every red mark should be on something you meant to move.
+
+--video draws every frame of the span at the part's own rate; --beside puts a reference video
+to its left, for a scene made to follow one. Look at the pictures yourself before showing anyone.
 """
 
 import subprocess
@@ -16,12 +25,16 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import numpy as np
 import scenefile
 from PIL import Image, ImageDraw, ImageFont
 
+SEEN = 8  # levels of 255 a pixel must change by to count as changed
+
 
 def main():
-  path, opt = scenefile.arguments(__doc__, {"part": "idle", "moments": 8, "seconds": 0.0, "wide": 480, "out": "sheet.png", "video": None, "beside": None, "still": None})
+  path, opt = scenefile.arguments(__doc__, {"part": "idle", "moments": 8, "seconds": 0.0, "wide": 480, "out": "sheet.png", "zoom": None, "places": None, "zoom-wide": 1920,
+                                                "video": None, "beside": None, "still": None})
   told = scenefile.info(path, opt["still"])
   still = told["still_path"]
   scene = scenefile.read(path)
@@ -34,8 +47,8 @@ def main():
 
   count = max(2, opt["moments"])
   size = scenefile.size_for(told, opt["wide"])
-  # The idle part's first moment is rest, then moments through one cycle; the arrive part runs start to end.
-  times = [span * k / (count - 1) for k in range(count)] if part == "arrive" else [0.0] + [0.5 + span * k / (count - 1) for k in range(1, count)]
+  # The idle part's first moment is rest, then moments evenly through one cycle; the arrive part runs start to end.
+  times = scenefile.moments(span, count, part)
   across = min(4, count)
   rows = -(-count // across)
   font = ImageFont.load_default(size=16)
@@ -46,7 +59,13 @@ def main():
     sheet.paste(Image.fromarray(frame.astype("uint8")), (x, y + 24))
     draw.text((x + 6, y + 3), f"{part} at {at:.2f}s" + (" (rest)" if part == "idle" and at == 0 else ""), fill="black", font=font)
   sheet.save(opt["out"])
-  print(f"{count} moments of the {part} part over {span:.1f}s: {opt['out']} ({sheet.width}x{sheet.height})")
+  every = span / (count - 1) if part == "arrive" else span / count
+  print(f"{count} moments of the {part} part, one every {every:.2f}s through {'its' if part == 'arrive' else 'one'} {span:.1f}s"
+        f"{'' if part == 'arrive' else ' cycle'}: {opt['out']} ({sheet.width}x{sheet.height})")
+  if opt["zoom"]:
+    zoom(path, part, span, told, still, opt)
+  else:
+    print("  Motion a few pixels wide does not show on a sheet. For stars, sparkles, thin lines or dots, add --zoom zoom.png and read that.")
 
   if opt["video"]:
     rate = scenefile.fps(scene, part)
@@ -65,6 +84,59 @@ def main():
       if subprocess.run(command).returncode != 0:
         scenefile.stop("ffmpeg could not write the video.")
     print(f"{frames} frames at {rate} a second: {opt['video']}" + (", the reference on the left" if opt["beside"] else ""))
+
+
+def zoom(path, part, span, told, still, opt):
+  """The whole picture with what changes marked large, and the busiest places at full size."""
+  size = scenefile.size_for(told, opt["zoom-wide"])
+  w, h = size
+  rest = next(scenefile.frames(path, "idle", [0.0], size, settling=1.0, still=still))[2]
+  shots = [(at, frame.astype("uint8")) for _, at, frame in scenefile.frames(path, part, scenefile.moments(span, 16, part)[1:], size, still=still)]
+  apart = np.stack([scenefile.levels(frame.astype(np.int16), rest) for _, frame in shots])
+  most = apart.max(0)
+  changed = most > SEEN
+  # A place is an eighth of the picture each way: small enough to show at twice its size.
+  pw, ph = w // 8 - (w // 8) % 2, h // 8 - (h // 8) % 2
+  if opt["places"]:
+    try:
+      corners = [(min(max(0, round(float(x) * w) - pw // 2), w - pw), min(max(0, round(float(y) * h) - ph // 2), h - ph))
+                 for x, y in (word.split(",") for word in opt["places"].split())]
+    except ValueError:
+      scenefile.stop('--places takes shares of the picture across and down, such as "0.3,0.6 0.7,0.2".')
+  else:
+    # The busiest tiles, no two side by side, so three places show three different parts of the picture.
+    tiles = sorted(((changed[y:y + ph, x:x + pw].sum(), x, y) for y in range(0, h - ph + 1, ph) for x in range(0, w - pw + 1, pw)), reverse=True)
+    corners = []
+    for score, x, y in tiles:
+      if score and len(corners) < 3 and all(abs(x - cx) > pw or abs(y - cy) > ph for cx, cy in corners):
+        # Centre the place on what changes in the tile, so it is not cut off at the tile's edge.
+        ys, xs = np.nonzero(changed[y:y + ph, x:x + pw])
+        corners.append((min(max(0, x + int(xs.mean()) - pw // 2), w - pw), min(max(0, y + int(ys.mean()) - ph // 2), h - ph)))
+  rest8 = rest.astype("uint8")
+  wide = 3 * 2 * pw
+  top = scenefile.marked(rest8, changed, radius=max(2, w // 480), boxes=[(x, y, pw, ph) for x, y in corners])
+  top = top.resize((wide, round(wide * h / w)), Image.LANCZOS)
+  font = ImageFont.load_default(size=18)
+  out = Image.new("RGB", (wide, top.height + 28 + len(corners) * (2 * ph + 28)), "white")
+  draw = ImageDraw.Draw(out)
+  draw.text((6, 4), f"everything that changes by more than {SEEN} levels through the {part} part, in red (marks drawn large); numbered places are enlarged below", fill="black", font=font)
+  out.paste(top, (0, 28))
+  print(f"what changes, marked, and {len(corners)} place{'' if len(corners) == 1 else 's'} at twice full size: {opt['zoom']} ({out.width}x{out.height})")
+  print(f"  through the {part} part {changed.mean():.3%} of the picture changes by more than {SEEN} levels, at a size of {w}x{h}")
+  for k, (x, y) in enumerate(corners):
+    box = (slice(y, y + ph), slice(x, x + pw))
+    which = int(apart[(slice(None),) + box].reshape(len(shots), -1).sum(1).argmax())
+    at, frame = shots[which]
+    row = top.height + 28 + k * (2 * ph + 28)
+    panels = [Image.fromarray(rest8[box]), Image.fromarray(frame[box]), scenefile.marked(rest8[box], changed[box])]
+    for n, (panel, name) in enumerate(zip(panels, ("at rest", f"at {at:.2f}s, when most changed", "what changes here"))):
+      out.paste(panel.resize((2 * pw, 2 * ph), Image.NEAREST), (n * 2 * pw, row + 28))
+      draw.text((n * 2 * pw + 6, row + 4), f"place {k + 1}: {name}", fill="black", font=font)
+    print(f"  place {k + 1} at {x / w:.2f} across, {y / h:.2f} down: {changed[box].mean():.2%} of it changes, by up to {most[box].max()} levels")
+  if not corners:
+    print("  nothing changes by that much anywhere")
+  out.save(opt["zoom"])
+  print("  Read it: every red mark should be on something you meant to move. A row of marks along an edge or a rim is the effect catching the edge.")
 
 
 if __name__ == "__main__":
