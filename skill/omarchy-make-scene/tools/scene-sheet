@@ -1,0 +1,71 @@
+#!/usr/bin/python
+"""Draw several moments of a scene into one picture to look at, and optionally a preview video.
+
+Usage: scene-sheet <scene.jsonc> [--part idle|arrive] [--moments 8] [--seconds S] [--wide 480]
+                   [--out sheet.png] [--video preview.mp4] [--beside reference.mp4] [--still PATH]
+
+The sheet spreads the moments over one cycle of the part: the longest time anything in the idle
+part repeats after, or the arrive part's length. --seconds sets another span. --video draws
+every frame of that span at the part's own rate; --beside puts a reference video to its left,
+for a scene made to follow one. Look at the sheet yourself before showing anyone the scene.
+"""
+
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scenefile
+from PIL import Image, ImageDraw, ImageFont
+
+
+def main():
+  path, opt = scenefile.arguments(__doc__, {"part": "idle", "moments": 8, "seconds": 0.0, "wide": 480, "out": "sheet.png", "video": None, "beside": None, "still": None})
+  told = scenefile.info(path, opt["still"])
+  still = told["still_path"]
+  scene = scenefile.read(path)
+  part = opt["part"]
+  if part not in ("idle", "arrive") or (part == "arrive" and not told["arrive"]):
+    scenefile.stop("The part is idle or arrive, and this scene has no arrive part." if part == "arrive" else __doc__)
+  span = opt["seconds"] or scenefile.cycle(scene, part)
+  if span <= 0:
+    scenefile.stop(f"Nothing in the {part} part moves yet, so there is nothing to lay out. Give it a motion first.")
+
+  count = max(2, opt["moments"])
+  size = scenefile.size_for(told, opt["wide"])
+  # The idle part's first moment is rest, then moments through one cycle; the arrive part runs start to end.
+  times = [span * k / (count - 1) for k in range(count)] if part == "arrive" else [0.0] + [0.5 + span * k / (count - 1) for k in range(1, count)]
+  across = min(4, count)
+  rows = -(-count // across)
+  font = ImageFont.load_default(size=16)
+  sheet = Image.new("RGB", (across * size[0], rows * (size[1] + 24)), "white")
+  draw = ImageDraw.Draw(sheet)
+  for k, at, frame in scenefile.frames(path, part, times, size, still=still):
+    x, y = (k % across) * size[0], (k // across) * (size[1] + 24)
+    sheet.paste(Image.fromarray(frame.astype("uint8")), (x, y + 24))
+    draw.text((x + 6, y + 3), f"{part} at {at:.2f}s" + (" (rest)" if part == "idle" and at == 0 else ""), fill="black", font=font)
+  sheet.save(opt["out"])
+  print(f"{count} moments of the {part} part over {span:.1f}s: {opt['out']} ({sheet.width}x{sheet.height})")
+
+  if opt["video"]:
+    rate = scenefile.fps(scene, part)
+    frames = min(round(span * rate), 720)
+    wide = scenefile.size_for(told, 960)
+    with tempfile.TemporaryDirectory(prefix="scene-video-") as out:
+      for k, _, frame in scenefile.run(path, part, 0.0, frames, rate, wide, still=still):
+        Image.fromarray(frame.astype("uint8")).save(f"{out}/{k:05d}.png", compress_level=1)
+      command = ["ffmpeg", "-v", "error", "-y"]
+      if opt["beside"]:
+        command += ["-stream_loop", "-1", "-i", opt["beside"], "-framerate", str(rate), "-i", f"{out}/%05d.png", "-filter_complex",
+                    f"[0:v]fps={rate},scale={wide[0]}:{wide[1]},setsar=1[l];[1:v]setsar=1[r];[l][r]hstack=inputs=2:shortest=1[v]", "-map", "[v]"]
+      else:
+        command += ["-framerate", str(rate), "-i", f"{out}/%05d.png"]
+      command += ["-frames:v", str(frames), "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", opt["video"]]
+      if subprocess.run(command).returncode != 0:
+        scenefile.stop("ffmpeg could not write the video.")
+    print(f"{frames} frames at {rate} a second: {opt['video']}" + (", the reference on the left" if opt["beside"] else ""))
+
+
+if __name__ == "__main__":
+  main()

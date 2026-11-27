@@ -1,0 +1,151 @@
+#!/usr/bin/python
+"""Check a scene by numbers, with no reference video: the things a scene must get right to be shown to anyone.
+
+Usage: scene-check <scene.jsonc> [--wide 960] [--map where.png] [--still PATH]
+
+  rest      with nothing moving the scene is its still, to the pixel
+  moves     something visibly changes through the idle part, and where
+  places    each piece and effect the idle part lists changes something, and nothing changes elsewhere
+  seam      nothing jumps where a cycle ends and starts again
+  arrive    how far the arrive part still is from the still when its last moments take over
+
+Exits 1 if a check fails. --map writes a picture of the still with what changes marked in red.
+It says nothing about whether the motion looks good: look at scene-sheet's picture for that.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import numpy as np
+import scenefile
+from PIL import Image
+
+SEEN = 8  # levels of 255 a pixel must change by to count as changed
+failed = []
+
+
+def main():
+  path, opt = scenefile.arguments(__doc__, {"wide": 960, "map": None, "still": None})
+  told = scenefile.info(path, opt["still"])
+  still = told["still_path"]
+  scene = scenefile.read(path)
+  size = scenefile.size_for(told, opt["wide"])
+  w, h = size
+  one = lambda part, at, settling=0.0: next(scenefile.frames(path, part, [at], size, settling=settling, still=still))[2]
+
+  drawn_still = one("idle", 0.0, settling=1.0)
+  apart = scenefile.levels(one("idle", 0.0), drawn_still)
+  report(apart.max() <= 1, "rest", f"at rest the scene is its still to within {apart.max()} level{'' if apart.max() == 1 else 's'}"
+         + ("" if apart.max() <= 1 else f"; {(apart > 1).mean():.3%} of the picture differs, {scenefile.box_text(scenefile.where(apart > 1))}. "
+            "A piece's shape or patch does not put the still back, or two pieces share a pixel."))
+
+  span, rate = scenefile.cycle(scene), scenefile.fps(scene)
+  if span <= 0:
+    report(bool(told["arrive"]), "moves", "nothing in the idle part moves" + (", so the scene only arrives" if told["arrive"] else ""))
+  else:
+    most = idle(path, scene, still, size, drawn_still, span, rate, opt["map"])
+    seam(path, scene, still, size, rate, most)
+
+  if told["arrive"]:
+    seconds = told["arrive"]["seconds"]
+    first = scenefile.levels(one("arrive", 0.0), drawn_still)
+    late = scenefile.levels(one("arrive", max(0.0, seconds - 0.41)), drawn_still)
+    print(f"arrive  starts with {(first > SEEN).mean():.1%} of the picture away from the still; 0.4s before its end {(late > SEEN).mean():.2%} still is, "
+          f"by up to {late.max()} levels" + (" (the last 0.4s fade that into the still; it should already be small)" if late.max() > SEEN else ""))
+
+  if failed:
+    sys.exit(f"\n{len(failed)} check{'s' if len(failed) > 1 else ''} failed: {', '.join(failed)}")
+  print("\nevery check passed; now look at it")
+
+
+def report(ok, name, text):
+  print(f"{name:7s} {text}" if ok else f"{name:7s} FAILED: {text}")
+  if not ok:
+    failed.append(name)
+
+
+def idle(path, scene, still, size, drawn_still, span, rate, map_path):
+  """What the idle part changes through one cycle, and where."""
+  w, h = size
+  count = int(min(max(24, round(span * rate)), 96))
+  most = np.zeros((h, w), np.int16)
+  for _, _, frame in scenefile.frames(path, "idle", [0.5 + span * k / count for k in range(count)], size, still=still):
+    most = np.maximum(most, scenefile.levels(frame, drawn_still))
+  changed = most > SEEN
+  report(most.max() >= 3, "moves", f"through {span:.1f}s, {(most > 2).mean():.2%} of the picture changes at all, {changed.mean():.2%} by more than {SEEN} levels "
+         f"and {(most > 24).mean():.2%} by more than 24; the largest change is {most.max()} levels. It happens {scenefile.box_text(scenefile.where(changed if changed.any() else most > 2))}"
+         + ("" if most.max() >= 3 else ". Nothing can be seen moving."))
+
+  # Each thing the part lists should change something in its own place, and nothing should change outside all of them.
+  allowed = np.zeros((h, w), bool)
+  idle_part = scene.get("idle", {})
+  pieces = {p["name"]: p for p in scene.get("pieces", [])}
+  areas = {a["name"]: a for a in scene.get("areas", [])}
+  quiet = []
+  for name, what in idle_part.items():
+    if name in pieces:
+      box = reach(pieces[name], what, w / h)
+    elif name in areas:
+      box = areas[name]["at"]
+    else:
+      continue
+    rows = slice(max(0, int(box[1] * h) - 2), min(h, int((box[1] + box[3]) * h) + 3))
+    cols = slice(max(0, int(box[0] * w) - 2), min(w, int((box[0] + box[2]) * w) + 3))
+    allowed[rows, cols] = True
+    if (most[rows, cols] > 2).sum() == 0:
+      quiet.append(name)
+  outside = changed & ~allowed
+  everywhere = allowed.all()
+  text = "everything the idle part lists changes something" if not quiet else f"nothing changes where the idle part lists {', '.join(quiet)}: a motion of zero, an effect with nothing to work on, or a shape that is empty there"
+  text += "; " + ("its places cover the whole picture, so nothing can fall outside them" if everywhere else
+                  f"{outside.mean():.3%} of the picture changes outside them" + ("" if outside.mean() <= 0.0001 else f", {scenefile.box_text(scenefile.where(outside))}"))
+  report(not quiet and outside.mean() <= 0.0001, "places", text)
+
+  if map_path:
+    base = (drawn_still.astype(float) * 0.5 + 64).clip(0, 255)
+    base[changed] = (255, 40, 40)
+    Image.fromarray(base.astype("uint8")).save(map_path)
+    print(f"        what changes by more than {SEEN} levels is red in {map_path}")
+  return most
+
+
+def reach(piece, moves, aspect):
+  """The box a piece can be in through the part: its place, grown by how far each motion takes it."""
+  left, top, wide, tall = piece["at"]
+  rest = piece.get("rest", {})
+  def far(motion):
+    if not isinstance(motion, dict):
+      return 0.0
+    return 2 * abs(motion.get("swing", 0)) + abs(motion.get("pulse", 0)) + (abs(motion.get("from", 0)) if "from" in motion and "swing" not in motion and "pulse" not in motion else 0)
+  # Distances are shares of the still's height; across, that is less of the picture's width.
+  dx = (abs(rest.get("x", 0)) + far(moves.get("x"))) / aspect
+  dy = abs(rest.get("y", 0)) + far(moves.get("y"))
+  grow = moves.get("size", {}).get("over", 0) / 2 if isinstance(moves.get("size"), dict) else 0
+  return (left - dx - grow * wide, top - dy - grow * tall, wide + 2 * (dx + grow * wide), tall + 2 * (dy + grow * tall))
+
+
+def seam(path, scene, still, size, rate, most):
+  """Where each cycle ends and starts again, the step across should be like the steps on either side of it."""
+  moving = most > 2
+  if not moving.any():
+    return
+  step = 1.0 / rate
+  worst = None
+  for length in scenefile.periods(scene):
+    turn = length
+    while turn - 2 * step < 0.5:
+      turn += length
+    frames = [f for _, _, f in scenefile.frames(path, "idle", [turn - 2 * step, turn - step, turn, turn + step], size, still=still)]
+    before, across, after = (np.abs(frames[k + 1] - frames[k]).max(-1)[moving].mean() for k in range(3))
+    usual = max(before, after, 0.02)
+    if worst is None or across / usual > worst[0]:
+      worst = (across / usual, length, turn, across, before, after)
+  ratio, length, turn, across, before, after = worst
+  ok = ratio <= 3 or across < 1
+  report(ok, "seam", f"where the {length:g}s cycle comes round (at {turn:g}s) the picture steps {across:.2f} levels over what moves; the steps before and after are {before:.2f} and {after:.2f}"
+         + ("" if ok else ". The picture jumps there: whatever repeats must come round to where it started, so use `phase` only inside functions that repeat, such as sin of a whole number of turns."))
+
+
+if __name__ == "__main__":
+  main()
