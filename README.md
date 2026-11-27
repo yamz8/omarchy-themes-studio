@@ -39,7 +39,7 @@ What Omarchy ships for each theme, and what the studio has. A **scene** follows 
 | [retro-82](retro-82/README.md) | 9 | 1 |  |  |
 | [ristretto](ristretto/README.md) | 5 | 1 | 1 | [0-launch](ristretto/0-launch/): study |
 | [rose-pine](rose-pine/README.md) | 4 | 1 | 1 | [1-funky-shapes](rose-pine/1-funky-shapes/): study |
-| [solitude](solitude/README.md) | 5 | 1 |  |  |
+| [solitude](solitude/README.md) | 5 | 1 |  | [1-on-pole](solitude/1-on-pole/): draft |
 | [starship](starship/README.md) | 4 | 1 |  |  |
 | [tokyo-night](tokyo-night/README.md) | 9 | 1 |  |  |
 | [vantablack](vantablack/README.md) | 5 | 1 | 1 | [0-dot-hands](vantablack/0-dot-hands/): scene |

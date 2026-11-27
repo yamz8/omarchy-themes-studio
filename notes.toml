@@ -45,3 +45,7 @@ note = "The first try at opening a still up: the picture cut into its parts and 
 ["flexoki-light/1-orb"]
 state = "study"
 note = "The same picture made two other ways for comparison, as a Blender file and as a vector file. No scene yet."
+
+["solitude/1-on-pole"]
+state = "draft"
+note = "A Blender base: the still cut into five layers, filled in behind, that render back to the still exactly. Not yet animated; the shipped intro changes the climber's pose and stays a video."
