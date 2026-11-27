@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3840 2160">
+  <title>Flexoki Light orb, as drawing instructions</title>
+  <!--
+    The Flexoki Light "1-orb" background, described as what it is: a shaded
+    ball, turned into 4x4-pixel dots by a threshold pattern. Read about.md.
+  -->
+  <defs>
+    <!-- 1. The shading: how much ink each point of the orb gets.
+         Opacity 1 is solid ink, 0 is none. The darkest point (cx, cy) is
+         measured from the orb's centre; it sits up and to the left, so the
+         orb looks lit from the lower right. -->
+    <radialGradient id="shading" gradientUnits="userSpaceOnUse" cx="-126" cy="-281" r="670">
+      <stop offset="0" stop-opacity="1"/>
+      <stop offset="0.25" stop-opacity="0.75"/>
+      <stop offset="0.5" stop-opacity="0.43"/>
+      <stop offset="0.75" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- 2. The outline: a slightly squashed, tilted circle. -->
+    <clipPath id="outline">
+      <ellipse rx="366" ry="331" transform="rotate(-29)"/>
+    </clipPath>
+
+    <!-- 3. The threshold tile: 4 x 4 cells, each 4 x 4 pixels (scale 4).
+         A cell becomes a dot where the shading is darker than the cell's
+         own opacity here. Repeated over the whole picture. -->
+    <pattern id="thresholds" patternUnits="userSpaceOnUse" x="0" y="2" width="16" height="16">
+      <g transform="scale(4)">
+        <rect x="0" y="0" width="1" height="1" fill-opacity="0.094"/>
+        <rect x="1" y="0" width="1" height="1" fill-opacity="0.594"/>
+        <rect x="2" y="0" width="1" height="1" fill-opacity="0.219"/>
+        <rect x="3" y="0" width="1" height="1" fill-opacity="0.719"/>
+        <rect x="0" y="1" width="1" height="1" fill-opacity="0.906"/>
+        <rect x="1" y="1" width="1" height="1" fill-opacity="0.406"/>
+        <rect x="2" y="1" width="1" height="1" fill-opacity="0.781"/>
+        <rect x="3" y="1" width="1" height="1" fill-opacity="0.281"/>
+        <rect x="0" y="2" width="1" height="1" fill-opacity="0.156"/>
+        <rect x="1" y="2" width="1" height="1" fill-opacity="0.656"/>
+        <rect x="2" y="2" width="1" height="1" fill-opacity="0.031"/>
+        <rect x="3" y="2" width="1" height="1" fill-opacity="0.531"/>
+        <rect x="0" y="3" width="1" height="1" fill-opacity="0.844"/>
+        <rect x="1" y="3" width="1" height="1" fill-opacity="0.344"/>
+        <rect x="2" y="3" width="1" height="1" fill-opacity="0.969"/>
+        <rect x="3" y="3" width="1" height="1" fill-opacity="0.469"/>
+      </g>
+    </pattern>
+    <rect id="threshold-sheet" width="3840" height="2160" fill="url(#thresholds)"/>
+
+    <!-- 4. The dither: shading minus threshold; wherever that is above zero,
+         paint a dot of ink. -->
+    <filter id="dither" filterUnits="userSpaceOnUse" x="0" y="0" width="3840" height="2160" color-interpolation-filters="sRGB">
+      <feImage href="#threshold-sheet" result="thresholds"/>
+      <feComposite in="SourceGraphic" in2="thresholds" operator="arithmetic" k2="1" k3="-1" result="difference"/>
+      <feComponentTransfer in="difference" result="dots">
+        <feFuncA type="linear" slope="255"/>
+      </feComponentTransfer>
+      <feFlood flood-color="#100F0F"/>
+      <feComposite in2="dots" operator="in"/>
+    </filter>
+  </defs>
+
+  <!-- The paper. -->
+  <rect width="3840" height="2160" fill="#FFFCF0"/>
+
+  <!-- The orb: its centre is at x 1899, y 1039. -->
+  <g filter="url(#dither)">
+    <g transform="translate(1899 1039)">
+      <rect x="-700" y="-700" width="1400" height="1400" fill="url(#shading)" clip-path="url(#outline)"/>
+    </g>
+  </g>
+</svg>
