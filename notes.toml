@@ -45,3 +45,7 @@ note = "The first try at opening a still up: the picture cut into its parts and 
 ["flexoki-light/1-orb"]
 state = "study"
 note = "The same picture made two other ways for comparison, as a Blender file and as a vector file. No scene yet."
+
+["ethereal/1-cosmic"]
+state = "draft"
+note = "Stars that twinkle, with one of OWE's own effects and a mask. Made by a fresh agent from the skill alone, as its first test. Passes the checks; not watched in motion."

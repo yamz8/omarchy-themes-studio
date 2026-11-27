@@ -23,7 +23,7 @@ What Omarchy ships for each theme, and what the studio has. A **scene** follows 
 |---|---|---|---|---|
 | [catppuccin](catppuccin/README.md) | 4 | 3 | 1 | [1-totoro](catppuccin/1-totoro/): scene |
 | [catppuccin-latte](catppuccin-latte/README.md) | 2 | 1 | 1 | [1-color-fade](catppuccin-latte/1-color-fade/): scene |
-| [ethereal](ethereal/README.md) | 4 | 1 |  |  |
+| [ethereal](ethereal/README.md) | 4 | 1 |  | [1-cosmic](ethereal/1-cosmic/): draft |
 | [everforest](everforest/README.md) | 2 | 1 |  |  |
 | [flexoki-light](flexoki-light/README.md) | 2 | 1 |  | [1-orb](flexoki-light/1-orb/): study |
 | [gruvbox](gruvbox/README.md) | 6 | 1 |  |  |

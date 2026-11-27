@@ -1,0 +1,34 @@
+// The scene for ethereal/1-cosmic.webp. With nothing moving it is that picture exactly.
+// The format is set out in format.md beside the omarchy-make-scene skill.
+{
+  // The still this scene belongs to, and its checksum. OWE refuses the scene for any other picture.
+  "still": "ethereal/1-cosmic.webp",
+  "sha256": "e3241507d4ba5cc25ae4bdf746401e4b65ce7a06cead4d83c49461587addab63",
+
+  // Places in the still. "at" is left, top, width and height as shares of the picture, 0 to 1.
+  // "mask" is a grey picture of the place's shape, white where an effect works in full; leave it
+  // out and the area is its whole rectangle.
+  "areas": [
+    { "name": "sky", "mask": "pieces/sky.png", "at": [0, 0, 1, 1] }
+  ],
+
+  // Shaders of the scene's own, each a file beside it, with the values it has unless a part says otherwise.
+  "effects": [
+    // { "name": "waves", "shader": "effects/waves.glsl", "values": { "amount": 0.016, "seconds": 16 } }
+  ],
+
+  // Shapes cut from the still that move, back to front.
+  "pieces": [
+    // { "name": "bird", "picture": "pieces/bird.png", "behind": "pieces/bird-behind.png", "at": [0.4, 0.3, 0.05, 0.08] }
+  ],
+
+  // Repeats for as long as the desktop may move. Everything in it passes through rest.
+  "idle": {
+    "frames_a_second": 12
+    , "sky": { "twinkle": { "amount": 0.5, "size": 0.002, "seconds": 8 } }
+    // , "bird": { "y": { "swing": 0.004, "seconds": 8 } }
+  }
+
+  // Add an "arrive" part only if the scene should also play as the background's intro:
+  // , "arrive": { "frames_a_second": 30, "seconds": 4, "bird": { "fade": { "from": 0, "after": 1, "for": 0.5 } } }
+}
