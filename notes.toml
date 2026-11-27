@@ -43,8 +43,8 @@ state = "study"
 note = "The first try at opening a still up: the picture cut into its parts and inks by a recipe. No scene."
 
 ["flexoki-light/1-orb"]
-state = "study"
-note = "The same picture made two other ways for comparison, as a Blender file and as a vector file. No scene yet."
+state = "draft"
+note = "The light travels once round the orb in 60 seconds, by one shader that dithers on the still's own grid. 7.8 KB. Made by a fresh agent from the skill alone, as its second test. Passes the checks; not watched on a desktop. The same picture is also here as a Blender file and a vector file, for comparison."
 
 ["ethereal/1-cosmic"]
 state = "draft"

@@ -25,7 +25,7 @@ What Omarchy ships for each theme, and what the studio has. A **scene** follows 
 | [catppuccin-latte](catppuccin-latte/README.md) | 2 | 1 | 1 | [1-color-fade](catppuccin-latte/1-color-fade/): scene |
 | [ethereal](ethereal/README.md) | 4 | 1 |  | [1-cosmic](ethereal/1-cosmic/): draft |
 | [everforest](everforest/README.md) | 2 | 1 |  |  |
-| [flexoki-light](flexoki-light/README.md) | 2 | 1 |  | [1-orb](flexoki-light/1-orb/): study |
+| [flexoki-light](flexoki-light/README.md) | 2 | 1 |  | [1-orb](flexoki-light/1-orb/): draft |
 | [gruvbox](gruvbox/README.md) | 6 | 1 |  |  |
 | [hackerman](hackerman/README.md) | 3 | 1 | 1 | [1-synth-scape](hackerman/1-synth-scape/): scene |
 | [jade-horse](jade-horse/README.md) | 4 | 1 |  |  |

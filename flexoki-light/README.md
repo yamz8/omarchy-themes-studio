@@ -4,5 +4,5 @@ The backgrounds Omarchy ships for this theme, and what the studio has for each. 
 
 | Background | Still | Intro | Loop | In the studio |
 |---|---|---|---|---|
-| `1-orb.webp` | 97 KB | 556 KB |  | [Study](1-orb/). The same picture made two other ways for comparison, as a Blender file and as a vector file. No scene yet. |
+| `1-orb.webp` | 97 KB | 556 KB |  | [Draft](1-orb/). The light travels once round the orb in 60 seconds, by one shader that dithers on the still's own grid. 7.8 KB. Made by a fresh agent from the skill alone, as its second test. Passes the checks; not watched on a desktop. The same picture is also here as a Blender file and a vector file, for comparison. |
 | `2-omarchy.webp` | 4 KB |  |  | Not started. |

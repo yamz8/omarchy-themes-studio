@@ -1,0 +1,23 @@
+// The scene for flexoki-light/1-orb.webp: the light travels slowly once round
+// the orb and comes back, and the dots of its shading follow it. Nothing is
+// cut out; one shader of the scene's own re-dithers the orb on its own grid.
+// With nothing moving it is that picture exactly.
+{
+  "still": "flexoki-light/1-orb.webp",
+  "sha256": "37f8c1ff2e7a95f1a15cbb0394be5642b8e9813638866c79a10537d6553ee90f",
+
+  // A square round the sphere, a little larger than it.
+  "areas": [
+    { "name": "orb", "at": [0.3971, 0.3162, 0.2042, 0.3630] }
+  ],
+
+  // turns: whole turns of the light in one cycle; seconds: the length of the cycle.
+  "effects": [
+    { "name": "orbit", "shader": "effects/orbit.glsl", "values": { "turns": 1, "seconds": 60 } }
+  ],
+
+  "idle": {
+    "frames_a_second": 12,
+    "orb": { "orbit": {} }
+  }
+}
