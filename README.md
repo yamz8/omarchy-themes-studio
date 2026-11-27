@@ -21,6 +21,7 @@ What Omarchy ships for each theme, and what the studio has. A **scene** follows 
 <!-- themes: written by bin/themes -->
 | Theme | Backgrounds | Intros | Loops | In the studio |
 |---|---|---|---|---|
+| [anduril-bluechip](anduril-bluechip/README.md) | 3 |  |  |  |
 | [catppuccin](catppuccin/README.md) | 4 | 3 | 1 | [1-totoro](catppuccin/1-totoro/): scene |
 | [catppuccin-latte](catppuccin-latte/README.md) | 2 | 1 | 1 | [1-color-fade](catppuccin-latte/1-color-fade/): scene |
 | [ethereal](ethereal/README.md) | 4 | 1 |  |  |
