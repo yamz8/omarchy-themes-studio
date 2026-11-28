@@ -32,24 +32,35 @@ def main():
   height, width, _ = still.shape
   parts = spec["part"]
 
-  inside = {p["name"]: polygon(p["outline"], width, height) for p in parts if "outline" in p}
+  inside = {p["name"]: part_mask(p, width, height) for p in parts if is_shape(p)}
+  for part in parts:
+    # Where a nearer layer covers this one, take in the part's rough outline too, so moving the
+    # nearer layer never shows a gap: the climber's legs carry on under the dome.
+    if "under" in part:
+      nearer = inside[part["under"]["by"]]
+      inside[part["name"]] |= polygon(part["under"]["outline"], width, height) & nearer
   hidden = np.zeros((height, width), bool)
   for mask in inside.values():
     hidden |= mask
 
-  # What is behind the climber and the dome: the picture mirrored in from the left along each row.
+  # What is behind the climber and the dome: the picture mirrored in from both sides along each row.
   clean = mirror_fill(still, hidden)
   Image.fromarray(clean).save(out / "clean.png")
 
   layers = []
   for index, part in enumerate(parts):
-    if "outline" in part:
+    if is_shape(part):
       # The part's own pixels, with whatever nearer outlines hide of it mirrored in.
       nearer = np.zeros((height, width), bool)
       for later in parts[index + 1:]:
-        if "outline" in later:
+        if is_shape(later):
           nearer |= inside[later["name"]]
       colour = mirror_fill(still, nearer) if nearer.any() else still
+      if "under" in part and "colour" in part["under"]:
+        # Where the nearer layer hides this one, the picture has nothing of it: show a flat colour.
+        hidden_here = inside[part["under"]["by"]]
+        colour = colour.copy()
+        colour[hidden_here] = hex_colour(part["under"]["colour"])
       alpha = outline_alpha(inside[part["name"]], part["fade"])
     else:
       colour = clean
@@ -79,6 +90,35 @@ def find_still(spec, given=None):
   sys.exit(f"The still parts.toml was drawn on ({spec['still']}) is not at:\n  " + "\n  ".join(map(str, places)))
 
 
+def hex_colour(text):
+  text = text.lstrip("#")
+  return np.array([int(text[i:i + 2], 16) for i in (0, 2, 4)], np.uint8)
+
+
+def is_shape(part):
+  return "outline" in part or "mask" in part
+
+
+def part_mask(part, width, height):
+  """Where a part is: its `mask` picture and/or `outline`, with any `add` polygons, grown by `grow` px,
+  less any `remove` polygons."""
+  mask = np.zeros((height, width), bool)
+  if "mask" in part:
+    picture = Image.open(HERE / part["mask"]).convert("L")
+    if picture.size != (width, height):
+      sys.exit(f"{part['mask']} is {picture.size[0]} x {picture.size[1]}, the still {width} x {height}.")
+    mask |= np.asarray(picture) > 127
+  if "outline" in part:
+    mask |= polygon(part["outline"], width, height)
+  for extra in part.get("add", []):
+    mask |= polygon(extra, width, height)
+  if part.get("grow"):
+    mask = ndi.binary_dilation(mask, iterations=part["grow"])
+  for gap in part.get("remove", []):
+    mask &= ~polygon(gap, width, height)
+  return mask
+
+
 def polygon(points, width, height):
   mask = Image.new("L", (width, height), 0)
   ImageDraw.Draw(mask).polygon([tuple(p) for p in points], fill=255)
@@ -104,24 +144,39 @@ def band_alpha(part, width, height):
 
 
 def mirror_fill(picture, holes):
-  """Fill each run of hole pixels in a row with the picture mirrored about the run's left end.
+  """Fill each run of hole pixels in a row with the picture mirrored in from both of its ends.
 
-  Mirroring keeps the pen hatching sharp, and it meets the edge without a step, which is where a
-  small motion shows what is behind. Runs that touch the left edge mirror from their right end.
+  The left half of a run is the picture mirrored about its left end, the right half the picture
+  mirrored about its right end, so the fill meets the picture without a step on both sides, which
+  is where a small motion shows what is behind. The only seam is in the middle of the run, deep
+  behind whatever covers it. Runs that touch an edge of the picture are mirrored from their other end.
   """
-  filled = picture.copy()
   width = picture.shape[1]
+  runs = []
   for y in np.flatnonzero(holes.any(axis=1)):
     row = holes[y]
     edges = np.flatnonzero(np.diff(np.concatenate([[0], row.astype(np.int8), [0]])))
-    for start, end in zip(edges[::2], edges[1::2]):
-      offsets = np.arange(end - start)
-      if start > 0:
-        source = start - 1 - offsets
-        source = np.abs(source)  # a run wider than what is left of it bounces off the left edge
-      else:
-        source = np.minimum(end + offsets, width - 1)
-      filled[y, start:end] = filled[y, source]
+    runs += [(y, start, end) for start, end in zip(edges[::2], edges[1::2])]
+
+  # First every run whole from its left end (from its right end if it starts at the left edge).
+  # Reading from this pass, a run's right half then never picks up a pixel of another hole.
+  from_left = picture.copy()
+  for y, start, end in runs:
+    offsets = np.arange(end - start)
+    if start > 0:
+      source = np.abs(start - 1 - offsets)  # a run wider than what is left of it bounces off the edge
+    else:
+      source = np.minimum(end + offsets, width - 1)
+    from_left[y, start:end] = from_left[y, source]
+
+  filled = from_left.copy()
+  for y, start, end in runs:
+    if start == 0 or end == width:
+      continue
+    middle = (start + end) // 2
+    source = 2 * end - 1 - np.arange(middle, end)
+    source = np.where(source >= width, 2 * width - 1 - source, source)  # bounce off the right edge
+    filled[y, middle:end] = from_left[y, source]
   return filled
 
 

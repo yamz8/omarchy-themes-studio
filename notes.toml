@@ -48,4 +48,4 @@ note = "The same picture made two other ways for comparison, as a Blender file a
 
 ["solitude/1-on-pole"]
 state = "draft"
-note = "A Blender base: the still cut into five layers, filled in behind, that render back to the still exactly. Not yet animated; the shipped intro changes the climber's pose and stays a video."
+note = "A Blender base: the still cut into five layers, filled in behind, that render back to the still exactly, with Loop and Intro scenes pinned to the still and an export to Omarchy's video rules. Not yet animated; the shipped intro changes the climber's pose and stays a video."
